@@ -2,3 +2,13 @@ node_modules/
 dist/
 .env
 *.log
+.next/
+.vercel/
+.turbo/
+coverage/
+build/
+out/
+node_modules/
+*.log
+.env
+.env.*
