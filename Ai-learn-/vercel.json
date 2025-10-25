@@ -1,0 +1,65 @@
+{
+  "buildCommand": "npm run build",
+  "devCommand": "npm run dev",
+  "installCommand": "npm install",
+  "framework": "nextjs",
+  "outputDirectory": ".next",
+  "regions": ["iad1"],
+  "env": {
+    "GEMINI_API_KEY": "@gemini_api_key",
+    "NEXT_PUBLIC_SUPABASE_URL": "@supabase_url",
+    "NEXT_PUBLIC_SUPABASE_ANON_KEY": "@supabase_anon_key"
+  },
+  "build": {
+    "env": {
+      "GEMINI_API_KEY": "@gemini_api_key",
+      "NEXT_PUBLIC_SUPABASE_URL": "@supabase_url",
+      "NEXT_PUBLIC_SUPABASE_ANON_KEY": "@supabase_anon_key"
+    }
+  },
+  "headers": [
+    {
+      "source": "/(.*)",
+      "headers": [
+        {
+          "key": "X-Content-Type-Options",
+          "value": "nosniff"
+        },
+        {
+          "key": "X-Frame-Options",
+          "value": "DENY"
+        },
+        {
+          "key": "X-XSS-Protection",
+          "value": "1; mode=block"
+        },
+        {
+          "key": "Referrer-Policy",
+          "value": "strict-origin-when-cross-origin"
+        }
+      ]
+    },
+    {
+      "source": "/api/(.*)",
+      "headers": [
+        {
+          "key": "Cache-Control",
+          "value": "s-maxage=0, max-age=0, must-revalidate"
+        }
+      ]
+    }
+  ],
+  "rewrites": [{ "source": "/api/:path*", "destination": "/api/:path*" }],
+  "redirects": [
+    { "source": "/home", "destination": "/", "permanent": true },
+    { "source": "/index.html", "destination": "/", "permanent": true },
+    { "source": "/signin", "destination": "/login", "permanent": true },
+    { "source": "/sign-in", "destination": "/login", "permanent": true },
+    { "source": "/register", "destination": "/signup", "permanent": true },
+    { "source": "/sign-up", "destination": "/signup", "permanent": true },
+    { "source": "/lessons", "destination": "/lesson", "permanent": true },
+    { "source": "/course", "destination": "/lesson", "permanent": true },
+    { "source": "/course/:path*", "destination": "/lesson", "permanent": true },
+    { "source": "/courses", "destination": "/dashboard", "permanent": true }
+  ]
+}

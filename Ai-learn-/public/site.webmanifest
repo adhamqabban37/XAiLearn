@@ -1,0 +1,26 @@
+{
+  "name": "AI-Learn Platform - AI-Powered Course Generation",
+  "short_name": "AI-Learn",
+  "description": "Transform PDFs and documents into interactive AI-powered courses",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#3b82f6",
+  "orientation": "portrait-primary",
+  "icons": [
+    {
+      "src": "/icon",
+      "sizes": "any",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/apple-icon",
+      "sizes": "any",
+      "type": "image/png",
+      "purpose": "any"
+    }
+  ],
+  "categories": ["education", "productivity", "utilities"],
+  "screenshots": []
+}

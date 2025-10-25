@@ -1,0 +1,277 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    
+    // ============================================================================
+    // HELPER FUNCTIONS - Reusable security checks
+    // ============================================================================
+    
+    // Check if user is authenticated
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+    
+    // Check if user owns the resource
+    function isOwner(userId) {
+      return isAuthenticated() && request.auth.uid == userId;
+    }
+    
+    // Check if the request is trying to modify ownership
+    function isNotChangingOwnership() {
+      return !('userId' in request.resource.data) 
+        || request.resource.data.userId == resource.data.userId;
+    }
+    
+    // Validate email format
+    function isValidEmail(email) {
+      return email.matches('^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\\.[a-zA-Z]{2,}$');
+    }
+    
+    // Check if timestamp fields are set correctly (no backdating)
+    function hasValidTimestamps() {
+      return request.resource.data.createdAt is timestamp
+        && request.resource.data.updatedAt is timestamp
+        && request.resource.data.createdAt <= request.time
+        && request.resource.data.updatedAt <= request.time.add(duration.value(10, 's')); // Allow 10s clock skew
+    }
+    
+    // Validate that required fields exist
+    function hasRequiredUserFields() {
+      return request.resource.data.keys().hasAll(['email', 'createdAt', 'updatedAt'])
+        && request.resource.data.email is string
+        && request.resource.data.email.size() > 0;
+    }
+    
+    // Check if data size is within limits (prevent DoS)
+    function isWithinSizeLimit() {
+      return request.resource.size() < 1048576; // 1MB limit
+    }
+    
+    // ============================================================================
+    // DEFAULT DENY RULE - Block everything by default
+    // ============================================================================
+    match /{document=**} {
+      allow read, write: if false;
+    }
+    
+    // ============================================================================
+    // USERS COLLECTION - Strict user-specific access
+    // ============================================================================
+    match /users/{userId} {
+      // Read: Users can ONLY read their own profile
+      allow read: if isOwner(userId);
+      
+      // Create: Allow ONLY on signup with proper validation
+      allow create: if isOwner(userId)
+        && hasRequiredUserFields()
+        && hasValidTimestamps()
+        && isValidEmail(request.resource.data.email)
+        && request.resource.data.email == request.auth.token.email
+        && isWithinSizeLimit();
+      
+      // Update: Users can ONLY update their own profile
+      allow update: if isOwner(userId)
+        && hasValidTimestamps()
+        && isWithinSizeLimit()
+        // Prevent changing immutable fields
+        && request.resource.data.createdAt == resource.data.createdAt
+        && (!('email' in request.resource.data) || request.resource.data.email == resource.data.email);
+      
+      // Delete: Users can delete their own profile
+      allow delete: if isOwner(userId);
+      
+      // ============================================================================
+      // USER PROGRESS SUBCOLLECTION - Track learning progress per user
+      // ============================================================================
+      match /progress/{progressId} {
+        // Read: Users can ONLY read their own progress
+        allow read: if isOwner(userId);
+        
+        // Create: Users can ONLY create their own progress records
+        allow create: if isOwner(userId)
+          && hasValidTimestamps()
+          && request.resource.data.keys().hasAll(['courseId', 'lessonId', 'completed', 'createdAt', 'updatedAt'])
+          && request.resource.data.courseId is string
+          && request.resource.data.lessonId is string
+          && request.resource.data.completed is bool
+          && isWithinSizeLimit();
+        
+        // Update: Users can ONLY update their own progress
+        allow update: if isOwner(userId)
+          && hasValidTimestamps()
+          && request.resource.data.createdAt == resource.data.createdAt
+          && isWithinSizeLimit();
+        
+        // Delete: Users can delete their own progress
+        allow delete: if isOwner(userId);
+      }
+      
+      // ============================================================================
+      // USER CERTIFICATES SUBCOLLECTION - Course completion certificates
+      // ============================================================================
+      match /certificates/{certificateId} {
+        // Read: Users can ONLY read their own certificates
+        allow read: if isOwner(userId);
+        
+        // Create: Users can ONLY create their own certificates
+        allow create: if isOwner(userId)
+          && hasValidTimestamps()
+          && request.resource.data.keys().hasAll(['courseId', 'courseName', 'completedAt', 'createdAt'])
+          && request.resource.data.courseId is string
+          && request.resource.data.courseName is string
+          && request.resource.data.completedAt is timestamp
+          && isWithinSizeLimit();
+        
+        // Update: Certificates are immutable once created
+        allow update: if false;
+        
+        // Delete: Users can delete their own certificates
+        allow delete: if isOwner(userId);
+      }
+    }
+    
+    // ============================================================================
+    // COURSES COLLECTION - User-owned course data
+    // ============================================================================
+    match /courses/{courseId} {
+      // Read: Users can ONLY read their own courses
+      allow read: if isAuthenticated() 
+        && resource.data.userId == request.auth.uid;
+      
+      // Create: Users can ONLY create courses for themselves
+      allow create: if isAuthenticated()
+        && request.resource.data.userId == request.auth.uid
+        && hasValidTimestamps()
+        && request.resource.data.keys().hasAll(['title', 'userId', 'createdAt', 'updatedAt'])
+        && request.resource.data.title is string
+        && request.resource.data.title.size() > 0
+        && request.resource.data.title.size() <= 200
+        && isWithinSizeLimit();
+      
+      // Update: Users can ONLY update their own courses
+      allow update: if isAuthenticated()
+        && resource.data.userId == request.auth.uid
+        && request.resource.data.userId == request.auth.uid
+        && isNotChangingOwnership()
+        && hasValidTimestamps()
+        && request.resource.data.createdAt == resource.data.createdAt
+        && isWithinSizeLimit();
+      
+      // Delete: Users can ONLY delete their own courses
+      allow delete: if isAuthenticated() 
+        && resource.data.userId == request.auth.uid;
+      
+      // ============================================================================
+      // LESSONS SUBCOLLECTION - Course lessons
+      // ============================================================================
+      match /lessons/{lessonId} {
+        // Read: Users can ONLY read lessons from their own courses
+        allow read: if isAuthenticated()
+          && get(/databases/$(database)/documents/courses/$(courseId)).data.userId == request.auth.uid;
+        
+        // Create: Users can ONLY create lessons in their own courses
+        allow create: if isAuthenticated()
+          && get(/databases/$(database)/documents/courses/$(courseId)).data.userId == request.auth.uid
+          && hasValidTimestamps()
+          && request.resource.data.keys().hasAll(['title', 'content', 'order', 'createdAt', 'updatedAt'])
+          && request.resource.data.title is string
+          && request.resource.data.content is string
+          && request.resource.data.order is number
+          && isWithinSizeLimit();
+        
+        // Update: Users can ONLY update lessons in their own courses
+        allow update: if isAuthenticated()
+          && get(/databases/$(database)/documents/courses/$(courseId)).data.userId == request.auth.uid
+          && hasValidTimestamps()
+          && request.resource.data.createdAt == resource.data.createdAt
+          && isWithinSizeLimit();
+        
+        // Delete: Users can ONLY delete lessons from their own courses
+        allow delete: if isAuthenticated()
+          && get(/databases/$(database)/documents/courses/$(courseId)).data.userId == request.auth.uid;
+      }
+      
+      // ============================================================================
+      // QUIZ QUESTIONS SUBCOLLECTION - Quiz data for courses
+      // ============================================================================
+      match /quizzes/{quizId} {
+        // Read: Users can ONLY read quizzes from their own courses
+        allow read: if isAuthenticated()
+          && get(/databases/$(database)/documents/courses/$(courseId)).data.userId == request.auth.uid;
+        
+        // Create: Users can ONLY create quizzes in their own courses
+        allow create: if isAuthenticated()
+          && get(/databases/$(database)/documents/courses/$(courseId)).data.userId == request.auth.uid
+          && hasValidTimestamps()
+          && isWithinSizeLimit();
+        
+        // Update: Users can ONLY update quizzes in their own courses
+        allow update: if isAuthenticated()
+          && get(/databases/$(database)/documents/courses/$(courseId)).data.userId == request.auth.uid
+          && hasValidTimestamps()
+          && isWithinSizeLimit();
+        
+        // Delete: Users can ONLY delete quizzes from their own courses
+        allow delete: if isAuthenticated()
+          && get(/databases/$(database)/documents/courses/$(courseId)).data.userId == request.auth.uid;
+      }
+    }
+    
+    // ============================================================================
+    // USER UPLOADS COLLECTION - File metadata tracking
+    // ============================================================================
+    match /uploads/{uploadId} {
+      // Read: Users can ONLY read their own uploads
+      allow read: if isAuthenticated() 
+        && resource.data.userId == request.auth.uid;
+      
+      // Create: Users can ONLY create uploads for themselves
+      allow create: if isAuthenticated()
+        && request.resource.data.userId == request.auth.uid
+        && hasValidTimestamps()
+        && request.resource.data.keys().hasAll(['fileName', 'fileSize', 'userId', 'createdAt'])
+        && request.resource.data.fileName is string
+        && request.resource.data.fileSize is number
+        && request.resource.data.fileSize > 0
+        && request.resource.data.fileSize < 52428800 // 50MB limit
+        && isWithinSizeLimit();
+      
+      // Update: Users can ONLY update their own uploads
+      allow update: if isAuthenticated()
+        && resource.data.userId == request.auth.uid
+        && request.resource.data.userId == request.auth.uid
+        && isNotChangingOwnership()
+        && isWithinSizeLimit();
+      
+      // Delete: Users can ONLY delete their own uploads
+      allow delete: if isAuthenticated() 
+        && resource.data.userId == request.auth.uid;
+    }
+    
+    // ============================================================================
+    // SESSIONS COLLECTION - Active user sessions (optional)
+    // ============================================================================
+    match /sessions/{sessionId} {
+      // Read: Users can ONLY read their own sessions
+      allow read: if isAuthenticated() 
+        && resource.data.userId == request.auth.uid;
+      
+      // Create: Users can ONLY create their own sessions
+      allow create: if isAuthenticated()
+        && request.resource.data.userId == request.auth.uid
+        && hasValidTimestamps()
+        && isWithinSizeLimit();
+      
+      // Update: Users can ONLY update their own sessions
+      allow update: if isAuthenticated()
+        && resource.data.userId == request.auth.uid
+        && request.resource.data.userId == request.auth.uid
+        && isWithinSizeLimit();
+      
+      // Delete: Users can ONLY delete their own sessions
+      allow delete: if isAuthenticated() 
+        && resource.data.userId == request.auth.uid;
+    }
+  }
+}
