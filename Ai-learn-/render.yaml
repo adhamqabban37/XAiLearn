@@ -2,6 +2,7 @@ services:
   - type: web
     name: xailearning-1
     env: node
+    rootDir: Ai-learn-
     region: oregon
     plan: free
     branch: main
