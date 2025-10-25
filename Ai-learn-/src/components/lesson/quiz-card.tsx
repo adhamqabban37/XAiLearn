@@ -35,13 +35,13 @@ export function QuizCard({ questions, onQuizComplete }: QuizCardProps) {
     if (isCompleted && !hasScrolled) {
       // Calculate pass threshold (70%)
       const passThreshold = 0.7;
-      const passed = (correctAnswers / questions.length) >= passThreshold;
-      
+      const passed = correctAnswers / questions.length >= passThreshold;
+
       // Auto-mark lesson complete if passed
       if (passed && onQuizComplete) {
         onQuizComplete();
       }
-      
+
       setHasScrolled(true);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -49,11 +49,13 @@ export function QuizCard({ questions, onQuizComplete }: QuizCardProps) {
 
   if (isCompleted) {
     const passThreshold = 0.7;
-    const passed = (correctAnswers / questions.length) >= passThreshold;
+    const passed = correctAnswers / questions.length >= passThreshold;
     const percentage = Math.round((correctAnswers / questions.length) * 100);
-    
+
     return (
-      <Card className={`${passed ? 'bg-secondary/60 border-secondary' : 'bg-orange-50 dark:bg-orange-950/20 border-orange-300 dark:border-orange-800'} shadow-sm quiz-complete`}>
+      <Card
+        className={`${passed ? "bg-secondary/60 border-secondary" : "bg-orange-50 dark:bg-orange-950/20 border-orange-300 dark:border-orange-800"} shadow-sm quiz-complete`}
+      >
         <CardHeader className="space-y-2 sm:space-y-3">
           <div className="mx-auto text-secondary-foreground/80">
             {passed ? (
@@ -63,11 +65,14 @@ export function QuizCard({ questions, onQuizComplete }: QuizCardProps) {
             )}
           </div>
           <CardTitle className="text-lg sm:text-xl text-center">
-            {passed ? 'Quiz Complete! 🎉' : 'Review and Try Again'}
+            {passed ? "Quiz Complete! 🎉" : "Review and Try Again"}
           </CardTitle>
           <CardDescription className="text-sm sm:text-base text-center">
-            You answered {correctAnswers} out of {questions.length} questions correctly ({percentage}%).
-            {passed ? ' Lesson complete! ✨' : ` You need ${Math.ceil(questions.length * passThreshold)} correct to pass.`}
+            You answered {correctAnswers} out of {questions.length} questions
+            correctly ({percentage}%).
+            {passed
+              ? " Lesson complete! ✨"
+              : ` You need ${Math.ceil(questions.length * passThreshold)} correct to pass.`}
           </CardDescription>
         </CardHeader>
         <CardFooter className="flex justify-center pt-2 sm:pt-4">
@@ -126,6 +131,18 @@ export function QuizCard({ questions, onQuizComplete }: QuizCardProps) {
     }
   };
 
+  const handleSkip = () => {
+    // Allow skipping without answering
+    console.log(`⏭️ Skipped question ${currentQuestionIndex + 1}`);
+    setSelectedAnswer(null);
+    setAnswerState("unanswered");
+    if (currentQuestionIndex < questions.length - 1) {
+      setCurrentQuestionIndex((prev) => prev + 1);
+    } else {
+      setIsCompleted(true);
+    }
+  };
+
   return (
     <Card className="bg-card shadow-sm">
       <CardHeader className="flex flex-row items-start gap-3 sm:gap-4 p-4 sm:p-6">
@@ -133,14 +150,18 @@ export function QuizCard({ questions, onQuizComplete }: QuizCardProps) {
           <QuestionMarkIcon className="w-7 h-7 sm:w-8 sm:h-8" />
         </div>
         <div className="min-w-0 flex-1">
-          <CardTitle className="text-base sm:text-lg">Check your understanding</CardTitle>
+          <CardTitle className="text-base sm:text-lg">
+            Check your understanding
+          </CardTitle>
           <CardDescription className="text-sm">
             Question {currentQuestionIndex + 1} of {questions.length}
           </CardDescription>
         </div>
       </CardHeader>
       <CardContent className="space-y-3 sm:space-y-4 p-4 sm:p-6 pt-0">
-        <p className="font-semibold text-sm sm:text-base leading-relaxed">{currentQuestion.question}</p>
+        <p className="font-semibold text-sm sm:text-base leading-relaxed">
+          {currentQuestion.question}
+        </p>
 
         {/* Multiple Choice Options */}
         {currentQuestion.options && currentQuestion.options.length > 0 ? (
@@ -167,7 +188,9 @@ export function QuizCard({ questions, onQuizComplete }: QuizCardProps) {
                   disabled={answerState !== "unanswered"}
                   className="accent-primary w-5 h-5 shrink-0"
                 />
-                <span className="flex-1 text-sm sm:text-base leading-relaxed">{option}</span>
+                <span className="flex-1 text-sm sm:text-base leading-relaxed">
+                  {option}
+                </span>
               </label>
             ))}
           </div>
@@ -200,7 +223,9 @@ export function QuizCard({ questions, onQuizComplete }: QuizCardProps) {
         {answerState === "incorrect" && (
           <Alert variant="destructive">
             <XCircle className="h-4 w-4" />
-            <AlertTitle className="text-sm sm:text-base">Not quite...</AlertTitle>
+            <AlertTitle className="text-sm sm:text-base">
+              Not quite...
+            </AlertTitle>
             <AlertDescription className="text-sm">
               The correct answer is: <strong>{currentQuestion.answer}</strong>
             </AlertDescription>
@@ -209,15 +234,24 @@ export function QuizCard({ questions, onQuizComplete }: QuizCardProps) {
       </CardContent>
       <CardFooter className="p-4 sm:p-6 pt-2 sm:pt-4">
         {answerState === "unanswered" ? (
-          <Button 
-            onClick={handleCheckAnswer} 
-            disabled={!selectedAnswer}
-            className="touch-target text-base w-full sm:w-auto"
-          >
-            Check Answer
-          </Button>
+          <div className="flex gap-2 w-full">
+            <Button
+              onClick={handleCheckAnswer}
+              disabled={!selectedAnswer}
+              className="touch-target text-base flex-1"
+            >
+              Check Answer
+            </Button>
+            <Button
+              onClick={handleSkip}
+              variant="outline"
+              className="touch-target text-base flex-1"
+            >
+              Skip Question
+            </Button>
+          </div>
         ) : (
-          <Button 
+          <Button
             onClick={handleNext}
             className="touch-target text-base w-full sm:w-auto"
           >
