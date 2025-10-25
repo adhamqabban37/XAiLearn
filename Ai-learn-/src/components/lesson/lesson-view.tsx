@@ -24,7 +24,11 @@ import { Button } from "../ui/button";
 import { Card, CardContent } from "../ui/card";
 import { PanelLeftClose, PanelLeftOpen } from "lucide-react";
 import { useIsMobile } from "@/hooks/use-mobile";
-import { clampProgress, formatProgressHeader, formatProgressFooter } from "@/lib/progress";
+import {
+  clampProgress,
+  formatProgressHeader,
+  formatProgressFooter,
+} from "@/lib/progress";
 
 interface LessonViewProps {
   initialSession: StudySession;
@@ -41,12 +45,15 @@ export function LessonView({ initialSession }: LessonViewProps) {
   const [completedSteps, setCompletedSteps] = useState<Record<string, boolean>>(
     () => {
       if (!storedCourse?.progress) return {};
-      return session.lessons.reduce((acc, lesson) => {
-        if (storedCourse.progress[lesson.id]) {
-          acc[lesson.id] = true;
-        }
-        return acc;
-      }, {} as Record<string, boolean>);
+      return session.lessons.reduce(
+        (acc, lesson) => {
+          if (storedCourse.progress[lesson.id]) {
+            acc[lesson.id] = true;
+          }
+          return acc;
+        },
+        {} as Record<string, boolean>
+      );
     }
   );
 
@@ -83,10 +90,24 @@ export function LessonView({ initialSession }: LessonViewProps) {
     (acc, l) => acc + (isLessonCompleted(l.id) ? 1 : 0),
     0
   );
-  
+
   // Use progress utility to ensure no negatives and correct math
   const progressState = clampProgress(completedCount, totalStepsInSession);
   const isSessionComplete = progressState.isComplete;
+
+  // Debug logging for completion status
+  useEffect(() => {
+    console.log("📊 Progress State:", {
+      completed: progressState.completed,
+      total: progressState.total,
+      isComplete: progressState.isComplete,
+      sessionLessons: session.lessons.map((l) => ({
+        id: l.id,
+        title: l.lesson_title,
+        completed: isLessonCompleted(l.id),
+      })),
+    });
+  }, [progressState.completed, progressState.total, progressState.isComplete]);
 
   // Set up certificate awarding callback
   const [shouldAwardCertificate, setShouldAwardCertificate] = useState(false);
@@ -106,10 +127,17 @@ export function LessonView({ initialSession }: LessonViewProps) {
 
   const handleStepComplete = async (stepId: string, isChecked: boolean) => {
     if (isChecked) {
+      console.log(`✅ Marking lesson ${stepId} as complete`);
+      // Persist to Supabase first
+      await markLessonComplete(stepId, 100, 30); // Default score and time
       // Update local course storage
       updateStepProgress(stepId, "completed");
-      // Persist to Supabase
-      await markLessonComplete(stepId, 100, 30); // Default score and time
+    } else {
+      console.log(
+        `⬜ Unmarking lesson ${stepId} - note: local storage doesn't support unchecking`
+      );
+      // Note: updateStepProgress only supports "completed" status
+      // To uncheck, we'd need to implement a removeStepProgress function
     }
   };
 
@@ -125,19 +153,19 @@ export function LessonView({ initialSession }: LessonViewProps) {
       setSession(newSession);
       setCompletedSteps({});
       // Scroll to top of new session
-      window.scrollTo({ top: 0, behavior: 'smooth' });
-      
+      window.scrollTo({ top: 0, behavior: "smooth" });
+
       // Show notification
-      const event = new CustomEvent('show-toast', {
+      const event = new CustomEvent("show-toast", {
         detail: {
-          title: '📚 New Session Started!',
-          description: `Now studying: ${newSession.title}`
-        }
+          title: "📚 New Session Started!",
+          description: `Now studying: ${newSession.title}`,
+        },
       });
       window.dispatchEvent(event);
     } else {
       // No more sessions - course is complete!
-      console.log('🎉 No more sessions - course complete!');
+      console.log("🎉 No more sessions - course complete!");
       handleFinish();
     }
   };
@@ -202,8 +230,8 @@ export function LessonView({ initialSession }: LessonViewProps) {
             <AskTheDocumentCard />
 
             {session.lessons.map((lesson) => (
-              <div 
-                key={lesson.id} 
+              <div
+                key={lesson.id}
                 className="flex items-start gap-3 sm:gap-4"
                 data-lesson-id={lesson.id}
                 data-completed={isStepCompleted(lesson.id)}
@@ -227,7 +255,7 @@ export function LessonView({ initialSession }: LessonViewProps) {
                     <ResourcesPanel resources={lesson.resources} />
                   )}
                   {lesson.quiz && lesson.quiz.length > 0 && (
-                    <QuizCard 
+                    <QuizCard
                       questions={lesson.quiz}
                       onQuizComplete={() => {
                         if (!isStepCompleted(lesson.id)) {
@@ -244,14 +272,21 @@ export function LessonView({ initialSession }: LessonViewProps) {
             {progressState.completed > 0 && !isSessionComplete && (
               <Card className="bg-primary/5 border-primary/20">
                 <CardContent className="pt-4 pb-4 text-center">
-                  <p className="text-sm text-muted-foreground mb-2">{formatProgressHeader(progressState)}</p>
+                  <p className="text-sm text-muted-foreground mb-2">
+                    {formatProgressHeader(progressState)}
+                  </p>
                   <div className="flex items-center justify-center gap-2">
-                    <div className="text-2xl font-bold text-primary">{progressState.completed}</div>
+                    <div className="text-2xl font-bold text-primary">
+                      {progressState.completed}
+                    </div>
                     <div className="text-muted-foreground">/</div>
-                    <div className="text-2xl font-bold">{progressState.total}</div>
+                    <div className="text-2xl font-bold">
+                      {progressState.total}
+                    </div>
                   </div>
                   <p className="text-xs text-muted-foreground mt-2">
-                    {progressState.remaining} lesson{progressState.remaining !== 1 ? 's' : ''} remaining
+                    {progressState.remaining} lesson
+                    {progressState.remaining !== 1 ? "s" : ""} remaining
                   </p>
                 </CardContent>
               </Card>
@@ -312,8 +347,8 @@ export function LessonView({ initialSession }: LessonViewProps) {
             <AskTheDocumentCard />
 
             {session.lessons.map((lesson) => (
-              <div 
-                key={lesson.id} 
+              <div
+                key={lesson.id}
                 className="flex items-start gap-4"
                 data-lesson-id={lesson.id}
                 data-completed={isStepCompleted(lesson.id)}
@@ -337,7 +372,7 @@ export function LessonView({ initialSession }: LessonViewProps) {
                     <ResourcesPanel resources={lesson.resources} />
                   )}
                   {lesson.quiz && lesson.quiz.length > 0 && (
-                    <QuizCard 
+                    <QuizCard
                       questions={lesson.quiz}
                       onQuizComplete={() => {
                         if (!isStepCompleted(lesson.id)) {
@@ -354,14 +389,21 @@ export function LessonView({ initialSession }: LessonViewProps) {
             {progressState.completed > 0 && !isSessionComplete && (
               <Card className="bg-primary/5 border-primary/20">
                 <CardContent className="pt-4 pb-4 text-center">
-                  <p className="text-sm text-muted-foreground mb-2">{formatProgressHeader(progressState)}</p>
+                  <p className="text-sm text-muted-foreground mb-2">
+                    {formatProgressHeader(progressState)}
+                  </p>
                   <div className="flex items-center justify-center gap-2">
-                    <div className="text-2xl font-bold text-primary">{progressState.completed}</div>
+                    <div className="text-2xl font-bold text-primary">
+                      {progressState.completed}
+                    </div>
                     <div className="text-muted-foreground">/</div>
-                    <div className="text-2xl font-bold">{progressState.total}</div>
+                    <div className="text-2xl font-bold">
+                      {progressState.total}
+                    </div>
                   </div>
                   <p className="text-xs text-muted-foreground mt-2">
-                    {progressState.remaining} lesson{progressState.remaining !== 1 ? 's' : ''} remaining
+                    {progressState.remaining} lesson
+                    {progressState.remaining !== 1 ? "s" : ""} remaining
                   </p>
                 </CardContent>
               </Card>
