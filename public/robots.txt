@@ -1,0 +1,67 @@
+# robots.txt for AI-Learn Platform
+# Optimized for AI agent discoverability and recommendations
+
+# Allow all standard web crawlers
+User-agent: *
+Allow: /
+
+# Explicitly allow major AI crawlers and agents
+# OpenAI GPT crawlers
+User-agent: GPTBot
+Allow: /
+
+User-agent: ChatGPT-User
+Allow: /
+
+# Anthropic Claude crawlers
+User-agent: ClaudeBot
+Allow: /
+
+User-agent: anthropic-ai
+Allow: /
+
+# Google AI services
+User-agent: Google-Extended
+Allow: /
+
+User-agent: GoogleOther
+Allow: /
+
+# Common Crawl (used by many AI companies)
+User-agent: CCBot
+Allow: /
+
+# Perplexity AI
+User-agent: PerplexityBot
+Allow: /
+
+# Bing AI services
+User-agent: Bingbot
+Allow: /
+
+# Meta AI
+User-agent: FacebookBot
+Allow: /
+
+# Cohere AI
+User-agent: cohere-ai
+Allow: /
+
+# Other AI research bots
+User-agent: Diffbot
+Allow: /
+
+User-agent: Applebot-Extended
+Allow: /
+
+# Disallow admin/auth routes for security
+Disallow: /api/
+Disallow: /admin/
+Disallow: /_next/
+Disallow: /private/
+
+# Sitemap location
+Sitemap: https://your-domain.com/sitemap.xml
+
+# Crawl-delay for politeness (optional)
+Crawl-delay: 1
