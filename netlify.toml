@@ -1,0 +1,92 @@
+# Netlify Configuration
+# https://docs.netlify.com/configure-builds/file-based-configuration/
+
+[build]
+  command = "npm run build"
+  publish = ".next"
+
+[build.environment]
+  NODE_VERSION = "20"
+  NPM_VERSION = "10"
+
+[[plugins]]
+  package = "@netlify/plugin-nextjs"
+
+[[headers]]
+  for = "/*"
+  [headers.values]
+    X-Frame-Options = "DENY"
+    X-Content-Type-Options = "nosniff"
+    X-XSS-Protection = "1; mode=block"
+    Referrer-Policy = "strict-origin-when-cross-origin"
+
+[[headers]]
+  for = "/_next/static/*"
+  [headers.values]
+    Cache-Control = "public, max-age=31536000, immutable"
+
+[[headers]]
+  for = "/api/*"
+  [headers.values]
+    Cache-Control = "s-maxage=0, max-age=0, must-revalidate"
+
+[[redirects]]
+  from = "/api/*"
+  to = "/.netlify/functions/:splat"
+  status = 200
+
+# Legacy path redirects
+[[redirects]]
+  from = "/home"
+  to = "/"
+  status = 301
+
+[[redirects]]
+  from = "/index.html"
+  to = "/"
+  status = 301
+
+[[redirects]]
+  from = "/signin"
+  to = "/login"
+  status = 301
+
+[[redirects]]
+  from = "/sign-in"
+  to = "/login"
+  status = 301
+
+[[redirects]]
+  from = "/register"
+  to = "/signup"
+  status = 301
+
+[[redirects]]
+  from = "/sign-up"
+  to = "/signup"
+  status = 301
+
+[[redirects]]
+  from = "/lessons"
+  to = "/lesson"
+  status = 301
+
+[[redirects]]
+  from = "/course"
+  to = "/lesson"
+  status = 301
+
+[[redirects]]
+  from = "/course/*"
+  to = "/lesson"
+  status = 301
+
+[[redirects]]
+  from = "/courses"
+  to = "/dashboard"
+  status = 301
+
+# Environment variables should be set in Netlify dashboard:
+# GEMINI_API_KEY
+# NEXT_PUBLIC_SUPABASE_URL
+# NEXT_PUBLIC_SUPABASE_ANON_KEY

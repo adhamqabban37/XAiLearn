@@ -1,0 +1,43 @@
+services:
+  - type: web
+    name: xailearning-1
+    env: node
+    region: oregon
+    plan: free
+    branch: main
+    buildCommand: cd Ai-learn- && npm ci && npm run build
+    startCommand: cd Ai-learn- && npm start
+    healthCheckPath: /
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: PORT
+        value: 10000
+      # Supabase
+      - key: NEXT_PUBLIC_SUPABASE_URL
+        sync: false
+      - key: NEXT_PUBLIC_SUPABASE_ANON_KEY
+        sync: false
+      # AI Providers
+      - key: AI_PROVIDER
+        value: github
+      - key: GITHUB_TOKEN
+        sync: false
+      - key: GH_MODELS_ENDPOINT
+        value: https://models.inference.ai.azure.com
+      - key: GH_MODELS_MODEL
+        value: gpt-4o-mini
+      - key: DEEPSEEK_API_KEY
+        sync: false
+      - key: DEEPSEEK_BASE_URL
+        value: https://api.deepseek.com/v1
+      - key: DEEPSEEK_MODEL
+        value: deepseek-chat
+      # YouTube API
+      - key: YOUTUBE_API_KEY
+        sync: false
+      # Optional: Ollama (only if you host it separately)
+      # - key: OLLAMA_BASE_URL
+      #   value: http://localhost:11434
+      # - key: OLLAMA_MODEL
+      #   value: mistral:latest

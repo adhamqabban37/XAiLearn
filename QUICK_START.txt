@@ -1,0 +1,20 @@
+# Quick Start Commands
+
+# Run these commands to test your AI optimization:
+
+# 1. Type check
+npm run typecheck
+
+# 2. Build for production
+npm run build
+
+# 3. Start production server
+npm run start
+
+# Then visit these URLs to verify:
+# http://localhost:9002/
+# http://localhost:9002/robots.txt
+# http://localhost:9002/sitemap.xml
+# http://localhost:9002/ai-info
+# http://localhost:9002/faq
+# http://localhost:9002/about
