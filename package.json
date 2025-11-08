@@ -13,7 +13,7 @@
     "genkit:dev": "genkit start -- tsx src/ai/dev.ts",
     "genkit:watch": "genkit start -- tsx --watch src/ai/dev.ts",
     "build": "next build && npm run copy-standalone",
-    "copy-standalone": "node -e \"const fs=require('fs'),path=require('path');const src='.next/static',dest='.next/standalone/.next/static';const pub='public',pubDest='.next/standalone/public';fs.cpSync(src,dest,{recursive:true});fs.cpSync(pub,pubDest,{recursive:true});console.log('Copied static files for standalone')\"",
+    "copy-standalone": "node scripts/copy-standalone.mjs",
     "start": "node scripts/start.cjs",
     "start:prod": "next start -p 9010",
     "start:standalone": "node .next/standalone/server.js",

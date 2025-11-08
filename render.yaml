@@ -5,8 +5,8 @@ services:
     region: oregon
     plan: free
     branch: main
-    buildCommand: cd Ai-learn- && npm ci && npm run build
-    startCommand: cd Ai-learn- && npm start
+    buildCommand: npm ci && npm run build
+    startCommand: npm run start:standalone
     healthCheckPath: /
     envVars:
       - key: NODE_ENV
