@@ -399,7 +399,7 @@ export function ContentForm({
               </div>
 
               <div className="relative flex items-center text-muted-foreground text-xs sm:text-sm before:h-px before:flex-1 before:bg-border after:h-px after:flex-1 after:bg-border before:mr-3 sm:before:mr-4 after:ml-3 sm:after:ml-4">
-                Or upload your own content
+                Or upload a PDF
               </div>
             </>
           )}
