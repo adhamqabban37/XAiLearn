@@ -1,7 +1,7 @@
 "use server";
 
 import { aiGenerateStream } from "@/lib/ai-provider";
-import { quizPromptTemplate } from "@/lib/quiz-prompt-template";
+import { quizPromptTemplate, quizChunkPrompt } from "@/lib/quiz-prompt-template";
 
 export type GenerateQuizInput = {
     textContent: string;
@@ -15,7 +15,8 @@ async function processChunk(text: string, chunkIndex: number, totalChunks: numbe
     console.log(`📚 Processing chunk ${chunkIndex + 1}/${totalChunks} (${text.length} chars)...`);
 
     const system = "You are an expert AI quiz generator. Output ONLY valid JSON, no markdown or explanation.";
-    const prompt = quizPromptTemplate.replace(
+    // Use the chunk-specific prompt
+    const prompt = quizChunkPrompt.replace(
         "[TEXT_TO_ANALYZE_WILL_BE_INSERTED_HERE]",
         text
     );
@@ -47,8 +48,8 @@ async function processChunk(text: string, chunkIndex: number, totalChunks: numbe
         }
 
         const parsed = JSON.parse(match[0]);
-        // Extract questions from the specific schema path
-        const questions = parsed?.modules?.[0]?.lessons?.[0]?.quiz || [];
+        // Extract questions from the simplified schema
+        const questions = parsed?.questions || [];
         console.log(`✅ Chunk ${chunkIndex + 1} extracted ${questions.length} questions.`);
         return questions;
 

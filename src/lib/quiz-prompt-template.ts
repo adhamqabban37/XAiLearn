@@ -59,3 +59,28 @@ IMPORTANT:
 Here is the text to analyze:
 [TEXT_TO_ANALYZE_WILL_BE_INSERTED_HERE]
 `;
+
+export const quizChunkPrompt = `
+You are a Strict Data Extraction Engine.
+Your task is to extract multiple - choice questions from the provided text chunk.
+
+OUTPUT FORMAT:
+Return a SINGLE JSON object with a "questions" key containing an array of questions.
+{
+  "questions": [
+    {
+      "question": "Question text...",
+      "type": "MCQ",
+      "options": ["Option A", "Option B", "Option C", "Option D"],
+      "answer": "Option A",
+      "explanation": "Explanation..."
+    }
+  ]
+}
+
+RULES:
+- Extract questions VERBATIM.
+- If options are missing, generate plausible distractors.
+- If no questions are found in this chunk, return { "questions": [] }.
+- JSON ONLY.No markdown.
+`;
