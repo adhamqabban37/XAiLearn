@@ -199,7 +199,7 @@ export function ContentForm({
       setProcessingStep("Generating course with AI...");
 
       // Step 2: Cap long text and call AI
-      const MAX_CHARS = 12000; // Reduced for faster processing
+      const MAX_CHARS = 100000; // Increased to handle larger PDFs (approx 25k words)
       if (text.length > MAX_CHARS) text = text.slice(0, MAX_CHARS);
 
       setUploadProgress(70);
@@ -282,16 +282,6 @@ export function ContentForm({
       )}
       <Form {...form}>
         <div className="space-y-4 sm:space-y-6">
-          <div className="text-center space-y-2">
-            <h3 className="text-xl sm:text-2xl md:text-3xl font-bold flex items-center justify-center gap-2 font-headline">
-              <Wand2 className="text-primary h-5 w-5 sm:h-6 sm:w-6" /> Craft with a prompt
-            </h3>
-            <p className="text-muted-foreground text-sm sm:text-base">
-              Generate course material with this powerful prompt, then bring it
-              back here.
-            </p>
-          </div>
-
           <div className="flex justify-center gap-4 mb-6">
             <div className="bg-muted/50 p-1 rounded-lg flex items-center">
               <Button
@@ -315,90 +305,104 @@ export function ContentForm({
             </div>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
-            <div className="md:col-span-2 space-y-3 sm:space-y-4">
-              <FormField
-                control={form.control}
-                name="topic"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormControl>
-                      <div className="relative flex items-center">
-                        <Sparkles className="absolute left-3 w-5 h-5 text-muted-foreground" />
-                        <Input
-                          placeholder="Enter your course topic..."
-                          {...field}
-                          className="pl-10 text-base py-5 sm:py-6 bg-background"
-                        />
-                      </div>
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-
-              <FormField
-                control={form.control}
-                name="duration"
-                render={({ field }) => (
-                  <FormItem className="space-y-2 sm:space-y-3 bg-background rounded-lg border p-3 sm:p-4">
-                    <div className="flex items-center gap-2">
-                      <Clock className="text-muted-foreground h-4 w-4 sm:h-5 sm:w-5" />
-                      <Label className="font-bold text-sm sm:text-base">
-                        How long should the course be?
-                      </Label>
-                    </div>
-                    <FormControl>
-                      <RadioGroup
-                        onValueChange={field.onChange}
-                        defaultValue={field.value}
-                        className="flex justify-between gap-2"
-                      >
-                        <FormItem className="flex items-center space-x-2 space-y-0 touch-target">
-                          <FormControl>
-                            <RadioGroupItem value="short" />
-                          </FormControl>
-                          <Label className="font-normal text-sm sm:text-base cursor-pointer">Short</Label>
-                        </FormItem>
-                        <FormItem className="flex items-center space-x-2 space-y-0 touch-target">
-                          <FormControl>
-                            <RadioGroupItem value="medium" />
-                          </FormControl>
-                          <Label className="font-normal text-sm sm:text-base cursor-pointer">Medium</Label>
-                        </FormItem>
-                        <FormItem className="flex items-center space-x-2 space-y-0 touch-target">
-                          <FormControl>
-                            <RadioGroupItem value="long" />
-                          </FormControl>
-                          <Label className="font-normal text-sm sm:text-base cursor-pointer">Long</Label>
-                        </FormItem>
-                      </RadioGroup>
-                    </FormControl>
-                  </FormItem>
-                )}
-              />
-
-              <Button
-                onClick={handleCopyToClipboard}
-                className="w-full btn-gradient shadow-md hover:shadow-lg transition-all touch-target text-base"
-                size="lg"
-              >
-                <Copy className="mr-2 h-4 w-4" />
-                Copy Prompt
-              </Button>
-            </div>
-            <div className="md:col-span-3">
-              <div className="h-full max-h-56 overflow-y-auto bg-background rounded-md p-3 sm:p-4 border relative">
-                <p className="text-xs sm:text-sm text-muted-foreground whitespace-pre-wrap font-code leading-relaxed">
-                  {finalPrompt}
+          {mode === "course" && (
+            <>
+              <div className="text-center space-y-2">
+                <h3 className="text-xl sm:text-2xl md:text-3xl font-bold flex items-center justify-center gap-2 font-headline">
+                  <Wand2 className="text-primary h-5 w-5 sm:h-6 sm:w-6" /> Craft with a prompt
+                </h3>
+                <p className="text-muted-foreground text-sm sm:text-base">
+                  Generate course material with this powerful prompt, then bring it
+                  back here.
                 </p>
               </div>
-            </div>
-          </div>
 
-          <div className="relative flex items-center text-muted-foreground text-xs sm:text-sm before:h-px before:flex-1 before:bg-border after:h-px after:flex-1 after:bg-border before:mr-3 sm:before:mr-4 after:ml-3 sm:after:ml-4">
-            Or upload your own content
-          </div>
+              <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
+                <div className="md:col-span-2 space-y-3 sm:space-y-4">
+                  <FormField
+                    control={form.control}
+                    name="topic"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormControl>
+                          <div className="relative flex items-center">
+                            <Sparkles className="absolute left-3 w-5 h-5 text-muted-foreground" />
+                            <Input
+                              placeholder="Enter your course topic..."
+                              {...field}
+                              className="pl-10 text-base py-5 sm:py-6 bg-background"
+                            />
+                          </div>
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+
+                  <FormField
+                    control={form.control}
+                    name="duration"
+                    render={({ field }) => (
+                      <FormItem className="space-y-2 sm:space-y-3 bg-background rounded-lg border p-3 sm:p-4">
+                        <div className="flex items-center gap-2">
+                          <Clock className="text-muted-foreground h-4 w-4 sm:h-5 sm:w-5" />
+                          <Label className="font-bold text-sm sm:text-base">
+                            How long should the course be?
+                          </Label>
+                        </div>
+                        <FormControl>
+                          <RadioGroup
+                            onValueChange={field.onChange}
+                            defaultValue={field.value}
+                            className="flex justify-between gap-2"
+                          >
+                            <FormItem className="flex items-center space-x-2 space-y-0 touch-target">
+                              <FormControl>
+                                <RadioGroupItem value="short" />
+                              </FormControl>
+                              <Label className="font-normal text-sm sm:text-base cursor-pointer">Short</Label>
+                            </FormItem>
+                            <FormItem className="flex items-center space-x-2 space-y-0 touch-target">
+                              <FormControl>
+                                <RadioGroupItem value="medium" />
+                              </FormControl>
+                              <Label className="font-normal text-sm sm:text-base cursor-pointer">Medium</Label>
+                            </FormItem>
+                            <FormItem className="flex items-center space-x-2 space-y-0 touch-target">
+                              <FormControl>
+                                <RadioGroupItem value="long" />
+                              </FormControl>
+                              <Label className="font-normal text-sm sm:text-base cursor-pointer">Long</Label>
+                            </FormItem>
+                          </RadioGroup>
+                        </FormControl>
+                      </FormItem>
+                    )}
+                  />
+
+                  <Button
+                    onClick={handleCopyToClipboard}
+                    className="w-full btn-gradient shadow-md hover:shadow-lg transition-all touch-target text-base"
+                    size="lg"
+                  >
+                    <Copy className="mr-2 h-4 w-4" />
+                    Copy Prompt
+                  </Button>
+                </div>
+                <div className="md:col-span-3">
+                  <div className="h-full max-h-56 overflow-y-auto bg-background rounded-md p-3 sm:p-4 border relative">
+                    <p className="text-xs sm:text-sm text-muted-foreground whitespace-pre-wrap font-code leading-relaxed">
+                      {finalPrompt}
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              <div className="relative flex items-center text-muted-foreground text-xs sm:text-sm before:h-px before:flex-1 before:bg-border after:h-px after:flex-1 after:bg-border before:mr-3 sm:before:mr-4 after:ml-3 sm:after:ml-4">
+                Or upload your own content
+              </div>
+            </>
+          )}
 
           <div className="space-y-4 text-center">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-2 sm:pt-4">
@@ -421,7 +425,7 @@ export function ContentForm({
                       : "Upload or Drag & Drop a PDF")}
                 </p>
                 <p className="text-xs text-muted-foreground px-2">
-                  The AI will read the file and build a course
+                  The AI will read the file and build a {mode === "quiz" ? "quiz" : "course"}
                 </p>
                 <input
                   ref={fileInputRef}

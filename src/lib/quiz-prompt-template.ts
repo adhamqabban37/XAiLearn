@@ -56,25 +56,22 @@ Coverage:
 3. INTERNAL PIPELINE (HOW YOU THINK)
 ====================================================
 
-Step 1 – Digest the content:
-- Identify main concepts, rules, definitions, steps, formulas, scenarios.
+Step 1 – Detect Content Type:
+- Is this a list of existing questions/flashcards? (e.g. "Question 1...", "Term: Definition")
+- OR is this raw textbook content?
 
-Step 2 – Select key points for questions:
-- Pick the most important or testable ideas.
-- Avoid tiny details with no learning value.
+Step 2 – Strategy Selection:
+- IF EXISTING QUESTIONS/FLASHCARDS: **EXTRACT THEM ALL**. Do not summarize. Do not pick just a few. Convert every single valid question/term you find into the JSON format. If the input has 100 questions, output 100 questions.
+- IF RAW CONTENT: Identify key concepts and generate new questions as described below.
 
-Step 3 – Write questions:
-- Turn each key idea into a multiple-choice question.
-- Make distractor options plausible but clearly wrong to a knowledgeable learner.
+Step 3 – Processing:
+- For Extraction: Map the existing question text, options (if present), and correct answer to the schema. If options are missing (flashcard style), generate 3 plausible distractors.
+- For Generation: Select key points -> Write Question -> Write Distractors -> Write Explanation.
 
-Step 4 – Add explanations:
-- Briefly explain why the correct answer is right.
-- Optionally mention why a common distractor is wrong (“Many people confuse X with Y, but…”).
-
-Step 5 – Validate:
-- Ensure every question is answerable from the given content.
-- Ensure there is exactly one correct answer.
-- Ensure correctOptionIndex correctly matches the options array.
+Step 4 – Validation:
+- Ensure every question is answerable.
+- Ensure exactly one correct answer.
+- Ensure "answer" matches the text of one option exactly.
 
 ====================================================
 4. OUTPUT FORMAT (CRITICAL)
