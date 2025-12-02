@@ -115,7 +115,32 @@ export async function generateCourseFromText(
     return {
       error:
         e?.message ||
+        e?.message ||
         "An unexpected error occurred while generating the course. Please try again later.",
+    };
+  }
+}
+
+import { generateQuiz } from "@/ai/flows/generate-quiz";
+
+export async function generateQuizFromText(
+  text: string
+): Promise<Course | { error: string }> {
+  const trimmed = text.trim();
+  if (!trimmed || trimmed.length < 100) {
+    return {
+      error: "Please enter at least 100 characters to create a quiz.",
+    };
+  }
+
+  try {
+    const analysis = await generateQuiz({ textContent: trimmed });
+    // Transform the raw analysis into a full Course object (adds IDs, etc.)
+    const course = transformAnalysisToCourse(analysis);
+    return course;
+  } catch (e: any) {
+    return {
+      error: e?.message || "Failed to generate quiz.",
     };
   }
 }

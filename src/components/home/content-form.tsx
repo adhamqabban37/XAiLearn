@@ -25,7 +25,7 @@ import {
   Wand2,
   Clock,
 } from "lucide-react";
-import { generateCourseFromText } from "@/app/actions";
+import { generateCourseFromText, generateQuizFromText } from "@/app/actions";
 import { saveCourse } from "@/lib/auth";
 import { useAuth } from "@/components/auth/AuthProvider";
 import type { Course } from "@/lib/types";
@@ -60,6 +60,7 @@ export function ContentForm({
   const [isDraggingOver, setIsDraggingOver] = useState(false);
   const [processingStep, setProcessingStep] = useState<string | null>(null);
   const [uploadProgress, setUploadProgress] = useState(0);
+  const [mode, setMode] = useState<"course" | "quiz">("course");
   const { toast } = useToast();
   const { user } = useAuth();
 
@@ -114,6 +115,7 @@ export function ContentForm({
     onCourseGenerated(course);
   };
 
+
   async function onTextSubmit() {
     const values = form.getValues();
     if (!values.text || values.text.length < 100) {
@@ -124,7 +126,12 @@ export function ContentForm({
     }
     setIsLoading(true);
     setError(null);
-    const result = await generateCourseFromText(values.text, values.duration);
+    let result;
+    if (mode === "quiz") {
+      result = await generateQuizFromText(values.text);
+    } else {
+      result = await generateCourseFromText(values.text, values.duration);
+    }
     setIsLoading(false);
     setIsPasting(false);
 
@@ -177,7 +184,7 @@ export function ContentForm({
         try {
           const err = await res.json();
           if (err?.error) msg = err.error;
-        } catch {}
+        } catch { }
         throw new Error(msg);
       }
       const parsed = await res.json();
@@ -199,11 +206,17 @@ export function ContentForm({
       // Pass videos extracted from PDF to course generation
       const pdfVideos = parsed?.videos || [];
       console.log(`🎥 Passing ${pdfVideos.length} videos from PDF to course generation`);
-      const result = await generateCourseFromText(
-        text,
-        form.getValues("duration"),
-        pdfVideos
-      );
+
+      let result;
+      if (mode === "quiz") {
+        result = await generateQuizFromText(text);
+      } else {
+        result = await generateCourseFromText(
+          text,
+          form.getValues("duration"),
+          pdfVideos
+        );
+      }
 
       setUploadProgress(90);
       if (result && "error" in result) {
@@ -277,6 +290,29 @@ export function ContentForm({
               Generate course material with this powerful prompt, then bring it
               back here.
             </p>
+          </div>
+
+          <div className="flex justify-center gap-4 mb-6">
+            <div className="bg-muted/50 p-1 rounded-lg flex items-center">
+              <Button
+                type="button"
+                variant={mode === "course" ? "default" : "ghost"}
+                size="sm"
+                onClick={() => setMode("course")}
+                className="text-sm font-medium"
+              >
+                Course Mode
+              </Button>
+              <Button
+                type="button"
+                variant={mode === "quiz" ? "default" : "ghost"}
+                size="sm"
+                onClick={() => setMode("quiz")}
+                className="text-sm font-medium"
+              >
+                Quiz Mode
+              </Button>
+            </div>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
@@ -380,9 +416,9 @@ export function ContentForm({
                   {isLoading
                     ? processingStep || "Processing..."
                     : fileName ||
-                      (isDraggingOver
-                        ? "Drop the PDF here!"
-                        : "Upload or Drag & Drop a PDF")}
+                    (isDraggingOver
+                      ? "Drop the PDF here!"
+                      : "Upload or Drag & Drop a PDF")}
                 </p>
                 <p className="text-xs text-muted-foreground px-2">
                   The AI will read the file and build a course
