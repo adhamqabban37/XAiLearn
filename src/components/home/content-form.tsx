@@ -1,9 +1,26 @@
 "use client";
 
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
+import {
+  UploadCloud,
+  FileText,
+  Loader2,
+  AlertCircle,
+  Sparkles,
+  Copy,
+  Clock,
+  ArrowRight,
+  Wand2,
+} from "lucide-react";
+import {
+  generateCourseFromText,
+  generateQuizFromText,
+  getQuizPapers,
+  generateQuizFromPaper,
+} from "@/app/actions";
 import { Button } from "@/components/ui/button";
 import {
   Form,
@@ -12,40 +29,26 @@ import {
   FormItem,
   FormMessage,
 } from "@/components/ui/form";
-import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
+import { Input } from "@/components/ui/input";
+import { Card } from "@/components/ui/card";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import {
-  Loader2,
-  FileText,
-  AlertCircle,
-  UploadCloud,
-  Sparkles,
-  Copy,
-  Wand2,
-  Clock,
-} from "lucide-react";
-import { generateCourseFromText, generateQuizFromText } from "@/app/actions";
-import { saveCourse } from "@/lib/auth";
-import { useAuth } from "@/components/auth/AuthProvider";
-import type { Course } from "@/lib/types";
-import { Card } from "../ui/card";
-import { useToast } from "@/hooks/use-toast";
-import { promptTemplate } from "@/lib/prompt-template";
-import { RadioGroup, RadioGroupItem } from "../ui/radio-group";
-import { Label } from "../ui/label";
-import { LoadingBar } from "../ui/loading-bar";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import { Label } from "@/components/ui/label";
+import { LoadingBar } from "@/components/ui/loading-bar";
+import { useToast } from "@/components/ui/use-toast";
+import { useDropzone } from "react-dropzone";
+import { Course } from "@/lib/types";
 
 const formSchema = z.object({
-  topic: z.string().optional(),
-  duration: z.string().optional(),
   text: z.string().optional(),
-  url: z.string().url({ message: "Please enter a valid URL." }).optional(),
+  topic: z.string().optional(),
+  duration: z.enum(["short", "medium", "long"]).default("medium"),
 });
 
 interface ContentFormProps {
   onCourseGenerated: (course: Course) => void;
-  setIsLoading: (isLoading: boolean) => void;
+  setIsLoading: (loading: boolean) => void;
   isLoading: boolean;
 }
 
@@ -56,69 +59,88 @@ export function ContentForm({
 }: ContentFormProps) {
   const [error, setError] = useState<string | null>(null);
   const [fileName, setFileName] = useState<string | null>(null);
+  const [uploadProgress, setUploadProgress] = useState(0);
+  const [processingStep, setProcessingStep] = useState<string | null>(null);
   const [isPasting, setIsPasting] = useState(false);
   const [isDraggingOver, setIsDraggingOver] = useState(false);
-  const [processingStep, setProcessingStep] = useState<string | null>(null);
-  const [uploadProgress, setUploadProgress] = useState(0);
   const [mode, setMode] = useState<"course" | "quiz">("course");
-  const { toast } = useToast();
-  const { user } = useAuth();
+  const [papers, setPapers] = useState<any[]>([]);
+  const [selectedPaperId, setSelectedPaperId] = useState<string | null>(null);
 
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const { toast } = useToast();
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     defaultValues: {
+      text: "",
       topic: "",
       duration: "medium",
-      text: "",
-      url: "",
     },
   });
 
+  // Fetch quiz papers when entering quiz mode
+  useEffect(() => {
+    if (mode === "quiz") {
+      getQuizPapers()
+        .then(setPapers)
+        .catch((err) => console.error("Failed to load quiz papers:", err));
+    }
+  }, [mode]);
+
+  const handleQuizStart = async () => {
+    if (!selectedPaperId) return;
+    setIsLoading(true);
+    try {
+      const result = await generateQuizFromPaper(selectedPaperId);
+      if ("error" in result) {
+        setError(result.error);
+      } else {
+        onCourseGenerated(result);
+      }
+    } catch (err: any) {
+      setError(err.message || "Failed to start quiz.");
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const { getRootProps, getInputProps, isDragActive } = useDropzone({
+    onDrop: (acceptedFiles) => {
+      const file = acceptedFiles[0];
+      if (file) {
+        setFileName(file.name);
+        onPdfSubmit(file);
+      }
+    },
+    accept: {
+      "application/pdf": [".pdf"],
+    },
+    multiple: false,
+  });
+
+  // Watch for topic changes to update the prompt
   const topic = form.watch("topic");
   const duration = form.watch("duration");
   const textValue = form.watch("text");
 
-  const finalPrompt = promptTemplate
-    .replace(
-      "[TEXT_TO_ANALYZE_WILL_BE_INSERTED_HERE]",
-      topic || "your topic of choice"
-    )
-    .replace("[COURSE_LENGTH_HERE]", duration || "medium");
+  const finalPrompt = topic
+    ? `Create a ${duration} course about "${topic}". Include key concepts, practical examples, and a quiz.`
+    : "Enter a topic to see the prompt...";
 
   const handleCopyToClipboard = () => {
-    navigator.clipboard.writeText(finalPrompt);
-    toast({
-      title: "Prompt Copied!",
-      description: "You can now paste this into your favorite AI tool.",
-    });
-  };
-
-  const handleCourseGenerated = async (course: Course) => {
-    // Save course for authenticated users using client-side Supabase session (RLS)
-    if (user) {
-      try {
-        const id = await saveCourse(user.id, course);
-        if (typeof id === "string") {
-          toast({
-            title: "Course Saved!",
-            description: "Your course has been saved to your dashboard.",
-          });
-        }
-      } catch (error) {
-        console.error("Error saving course:", error);
-      }
+    if (finalPrompt) {
+      navigator.clipboard.writeText(finalPrompt);
+      toast({
+        title: "Copied!",
+        description: "Prompt copied to clipboard",
+      });
     }
-
-    // Always call the original handler
-    onCourseGenerated(course);
   };
 
-
-  async function onTextSubmit() {
-    const values = form.getValues();
-    if (!values.text || values.text.length < 100) {
+  const handleTextSubmit = async () => {
+    const text = form.getValues("text");
+    if (!text || text.length < 100) {
       form.setError("text", {
         message: "Please enter at least 100 characters.",
       });
@@ -126,30 +148,57 @@ export function ContentForm({
     }
     setIsLoading(true);
     setError(null);
-    let result;
-    if (mode === "quiz") {
-      result = await generateQuizFromText(values.text);
-    } else {
-      result = await generateCourseFromText(values.text, values.duration);
-    }
-    setIsLoading(false);
-    setIsPasting(false);
 
-    if (result && "error" in result) {
-      setError(result.error);
-    } else if (result) {
-      await handleCourseGenerated(result);
-    }
-  }
+    try {
+      let result;
+      if (mode === "quiz") {
+        result = await generateQuizFromText(text);
+      } else {
+        result = await generateCourseFromText(text, duration);
+      }
 
-  const handleFileChange = async (
-    event: React.ChangeEvent<HTMLInputElement>
-  ) => {
-    const file = event.target.files?.[0];
-    if (file) {
-      setFileName(file.name);
-      await onPdfSubmit(file);
+      if (result && "error" in result) {
+        setError(result.error);
+      } else if (result) {
+        await handleCourseGenerated(result);
+      }
+    } catch (e: any) {
+      setError(e.message || "An error occurred.");
+    } finally {
+      setIsLoading(false);
     }
+  };
+
+  const handleCourseGenerated = async (course: Course) => {
+    // Save to local storage
+    if (typeof window !== "undefined") {
+      try {
+        const savedCourses = localStorage.getItem("ai-learn-courses");
+        const courses = savedCourses ? JSON.parse(savedCourses) : [];
+
+        // Check if course already exists
+        const existingIndex = courses.findIndex((c: Course) => c.course_title === course.course_title);
+
+        if (existingIndex >= 0) {
+          courses[existingIndex] = course;
+        } else {
+          courses.push(course);
+        }
+
+        localStorage.setItem("ai-learn-courses", JSON.stringify(courses));
+
+        // Also save to current course
+        localStorage.setItem("ai-learn-current-course", JSON.stringify(course));
+
+        // Trigger storage event for other components
+        window.dispatchEvent(new Event("storage"));
+      } catch (error) {
+        console.error("Error saving course:", error);
+      }
+    }
+
+    // Always call the original handler
+    onCourseGenerated(course);
   };
 
   const onPdfSubmit = async (file: File) => {
@@ -163,7 +212,6 @@ export function ContentForm({
     setUploadProgress(0);
     setProcessingStep("Reading PDF...");
 
-    // Step 1: Parse PDF via API route (fast)
     try {
       setUploadProgress(10);
       const formData = new FormData();
@@ -198,12 +246,10 @@ export function ContentForm({
       setUploadProgress(50);
       setProcessingStep("Generating course with AI...");
 
-      // Step 2: Cap long text and call AI
-      const MAX_CHARS = 100000; // Increased to handle larger PDFs (approx 25k words)
+      const MAX_CHARS = 100000;
       if (text.length > MAX_CHARS) text = text.slice(0, MAX_CHARS);
 
       setUploadProgress(70);
-      // Pass videos extracted from PDF to course generation
       const pdfVideos = parsed?.videos || [];
       console.log(`🎥 Passing ${pdfVideos.length} videos from PDF to course generation`);
 
@@ -225,7 +271,6 @@ export function ContentForm({
         await handleCourseGenerated(result);
         setUploadProgress(100);
         setProcessingStep("Course generated successfully!");
-        // Brief delay to show completion
         await new Promise((resolve) => setTimeout(resolve, 500));
       }
     } catch (e: any) {
@@ -239,32 +284,6 @@ export function ContentForm({
     setFileName(null);
     if (fileInputRef.current) {
       fileInputRef.current.value = "";
-    }
-  };
-
-  const handleDragEnter = (e: React.DragEvent<HTMLDivElement>) => {
-    e.preventDefault();
-    setIsDraggingOver(true);
-  };
-
-  const handleDragLeave = (e: React.DragEvent<HTMLDivElement>) => {
-    e.preventDefault();
-    setIsDraggingOver(false);
-  };
-
-  const handleDragOver = (e: React.DragEvent<HTMLDivElement>) => {
-    e.preventDefault(); // This is necessary to allow dropping
-  };
-
-  const handleDrop = (e: React.DragEvent<HTMLDivElement>) => {
-    e.preventDefault();
-    setIsDraggingOver(false);
-    const file = e.dataTransfer.files?.[0];
-    if (file && file.type === "application/pdf") {
-      setFileName(file.name);
-      onPdfSubmit(file);
-    } else {
-      setError("Please drop a valid PDF file.");
     }
   };
 
@@ -401,96 +420,152 @@ export function ContentForm({
               <div className="relative flex items-center text-muted-foreground text-xs sm:text-sm before:h-px before:flex-1 before:bg-border after:h-px after:flex-1 after:bg-border before:mr-3 sm:before:mr-4 after:ml-3 sm:after:ml-4">
                 Or upload a PDF
               </div>
+
+              <div className="space-y-4 text-center">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-2 sm:pt-4">
+                  <div
+                    {...getRootProps()}
+                    className={`
+                      border-2 border-dashed rounded-xl p-6 sm:p-8 md:p-10 text-center cursor-pointer transition-all duration-300
+                      flex flex-col items-center justify-center min-h-[200px] sm:min-h-[240px] gap-3 sm:gap-4
+                      ${isDragActive
+                        ? "border-primary bg-primary/5 scale-[1.02]"
+                        : "border-border hover:border-primary/50 hover:bg-accent/5"
+                      }
+                    `}
+                  >
+                    <input {...getInputProps()} />
+                    <div className="bg-primary/10 p-3 sm:p-4 rounded-full mb-2">
+                      <UploadCloud className="h-6 w-6 sm:h-8 sm:w-8 text-primary" />
+                    </div>
+                    <p className="mt-2 font-semibold text-foreground text-sm sm:text-base px-2">
+                      {isLoading
+                        ? processingStep || "Processing..."
+                        : fileName ||
+                        (isDragActive
+                          ? "Drop the PDF here!"
+                          : "Upload or Drag & Drop a PDF")}
+                    </p>
+                    <p className="text-xs text-muted-foreground px-2">
+                      The AI will read the file and build a course
+                    </p>
+                    {fileName && (
+                      <p className="text-xs text-primary font-medium mt-1">
+                        Ready to process
+                      </p>
+                    )}
+                  </div>
+
+                  <FormField
+                    control={form.control}
+                    name="text"
+                    render={({ field }) => (
+                      <FormItem className="h-full">
+                        <FormControl>
+                          <div className="relative h-full min-h-[200px] sm:min-h-[240px]">
+                            <Textarea
+                              placeholder="Or paste your text here..."
+                              className="h-full resize-none p-4 sm:p-6 text-sm sm:text-base rounded-xl border-border focus:border-primary transition-all"
+                              {...field}
+                            />
+                            <Button
+                              type="button"
+                              size="sm"
+                              className="absolute bottom-3 right-3 sm:bottom-4 sm:right-4"
+                              disabled={!field.value || isLoading}
+                              onClick={handleTextSubmit}
+                            >
+                              {isLoading ? (
+                                <Loader2 className="h-4 w-4 animate-spin" />
+                              ) : (
+                                <ArrowRight className="h-4 w-4" />
+                              )}
+                            </Button>
+                          </div>
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                </div>
+              </div>
             </>
           )}
 
-          <div className="space-y-4 text-center">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-2 sm:pt-4">
+          {mode === "quiz" && (
+            <div className="max-w-md mx-auto space-y-6 py-8">
+              <div className="text-center space-y-2">
+                <h3 className="text-xl font-bold">Select a Quiz Paper</h3>
+                <p className="text-muted-foreground text-sm">
+                  Choose a pre-loaded question bank to start your quiz.
+                </p>
+              </div>
+
+              <div className="space-y-4">
+                <select
+                  className="w-full p-3 rounded-lg border border-border bg-background"
+                  value={selectedPaperId || ""}
+                  onChange={(e) => setSelectedPaperId(e.target.value)}
+                >
+                  <option value="">-- Select a Paper --</option>
+                  {papers.map((paper) => (
+                    <option key={paper.id} value={paper.id}>
+                      {paper.title} ({paper.questionCount} questions)
+                    </option>
+                  ))}
+                </select>
+
+                <Button
+                  className="w-full btn-gradient"
+                  size="lg"
+                  disabled={!selectedPaperId || isLoading}
+                  onClick={handleQuizStart}
+                >
+                  {isLoading ? (
+                    <>
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      Loading Quiz...
+                    </>
+                  ) : (
+                    "Start Quiz"
+                  )}
+                </Button>
+              </div>
+
+              <div className="relative flex items-center text-muted-foreground text-xs sm:text-sm before:h-px before:flex-1 before:bg-border after:h-px after:flex-1 after:bg-border before:mr-3 sm:before:mr-4 after:ml-3 sm:after:ml-4">
+                Or upload your own PDF
+              </div>
+
+              {/* Upload area for Quiz Mode */}
               <div
-                className="relative border-2 border-dashed border-muted/30 rounded-lg p-4 sm:p-6 text-center cursor-pointer hover:border-primary hover:bg-muted/50 transition-colors flex flex-col justify-center items-center min-h-[160px] sm:h-40 touch-target data-[dragging-over=true]:border-primary data-[dragging-over=true]:bg-primary/10"
-                onClick={() => fileInputRef.current?.click()}
-                onDragEnter={handleDragEnter}
-                onDragLeave={handleDragLeave}
-                onDragOver={handleDragOver}
-                onDrop={handleDrop}
-                data-dragging-over={isDraggingOver}
+                {...getRootProps()}
+                className={`
+                  border-2 border-dashed rounded-xl p-6 sm:p-8 text-center cursor-pointer transition-all duration-300
+                  flex flex-col items-center justify-center min-h-[160px] gap-3
+                  ${isDragActive
+                    ? "border-primary bg-primary/5 scale-[1.02]"
+                    : "border-border hover:border-primary/50 hover:bg-accent/5"
+                  }
+                `}
               >
-                <UploadCloud className="mx-auto h-7 w-7 sm:h-8 sm:w-8 text-primary" />
-                <p className="mt-2 font-semibold text-foreground text-sm sm:text-base px-2">
-                  {isLoading
+                <input {...getInputProps()} />
+                <div className="bg-primary/10 p-3 rounded-full mb-2">
+                  <UploadCloud className="h-6 w-6 text-primary" />
+                </div>
+                <p className="mt-2 font-semibold text-foreground text-sm px-2">
+                  {isLoading && !selectedPaperId
                     ? processingStep || "Processing..."
                     : fileName ||
-                    (isDraggingOver
+                    (isDragActive
                       ? "Drop the PDF here!"
                       : "Upload or Drag & Drop a PDF")}
                 </p>
                 <p className="text-xs text-muted-foreground px-2">
-                  The AI will read the file and build a {mode === "quiz" ? "quiz" : "course"}
+                  We will extract every question found in the PDF.
                 </p>
-                <input
-                  ref={fileInputRef}
-                  type="file"
-                  accept=".pdf"
-                  onChange={handleFileChange}
-                  className="hidden"
-                  disabled={isLoading}
-                />
               </div>
-              <FormField
-                control={form.control}
-                name="text"
-                render={({ field }) => (
-                  <FormItem className="min-h-[160px] sm:h-40">
-                    {!isPasting ? (
-                      <div
-                        className="relative border-2 border-dashed border-muted/30 rounded-lg p-4 sm:p-6 text-center cursor-text hover:border-primary hover:bg-muted/50 transition-colors h-full flex flex-col justify-center touch-target"
-                        onClick={() => setIsPasting(true)}
-                      >
-                        <FileText className="mx-auto h-7 w-7 sm:h-8 sm:w-8 text-primary" />
-                        <p className="mt-2 font-semibold text-foreground text-sm sm:text-base">
-                          Paste Text
-                        </p>
-                        <p className="text-xs text-muted-foreground px-2">
-                          Paste any text to get started
-                        </p>
-                      </div>
-                    ) : (
-                      <div className="flex flex-col gap-2 h-full">
-                        <FormControl>
-                          <Textarea
-                            id="paste-text-area"
-                            placeholder="Paste your messy course notes, lesson plans, or document text here..."
-                            className="min-h-[120px] sm:min-h-[100px] text-base flex-1"
-                            {...field}
-                            autoFocus
-                          />
-                        </FormControl>
-                        {textValue && textValue.length > 100 && (
-                          <Button
-                            type="button"
-                            onClick={onTextSubmit}
-                            disabled={isLoading}
-                            size="sm"
-                            className="btn-gradient shadow-md hover:shadow-lg transition-all touch-target text-base"
-                          >
-                            {isLoading ? (
-                              <>
-                                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                                Analyzing...
-                              </>
-                            ) : (
-                              "Generate from Text"
-                            )}
-                          </Button>
-                        )}
-                      </div>
-                    )}
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
             </div>
-          </div>
+          )}
         </div>
       </Form>
 

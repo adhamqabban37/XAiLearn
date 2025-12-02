@@ -1,9 +1,16 @@
 "use server";
 
+import { generateObject } from "ai";
+import { google } from "@ai-sdk/google";
+import { z } from "zod";
+import { promptTemplate } from "@/lib/prompt-template";
+import { AnalyzeDocumentOutputSchema } from "@/ai/flows/schemas";
 import { analyzeDocument } from "@/ai/flows/restructure-messy-pdf";
 import { auditCourse } from "@/ai/flows/audit-course";
-import type { Course } from "@/lib/types";
+import { generateQuiz } from "@/ai/flows/generate-quiz";
+import type { Course, Session, Lesson, QuizQuestion } from "@/lib/types";
 import { transformAnalysisToCourse } from "@/lib/course-transform";
+import { QUIZ_PAPERS, getQuizPaperById } from "@/data/quizPapers";
 
 export async function generateCourseFromText(
   text: string,
@@ -55,7 +62,7 @@ export async function generateCourseFromText(
     // Post-processing: Ensure PDF videos are included in the course
     if (pdfVideos && pdfVideos.length > 0) {
       console.log(`🔍 Post-processing: Ensuring ${pdfVideos.length} PDF videos are included in course...`);
-      
+
       // Collect all video URLs already in the course
       const existingVideoUrls = new Set<string>();
       course.sessions.forEach(session => {
@@ -76,25 +83,25 @@ export async function generateCourseFromText(
 
       if (missingVideos.length > 0) {
         console.log(`➕ Adding ${missingVideos.length} missing PDF videos to course...`);
-        
+
         // Distribute missing videos across lessons (prefer earlier lessons)
         const allLessons = course.sessions.flatMap(session => session.lessons);
         let videoIndex = 0;
-        
+
         missingVideos.forEach(video => {
           if (videoIndex < allLessons.length) {
             const lesson = allLessons[videoIndex];
             if (!lesson.resources) {
               lesson.resources = [];
             }
-            
+
             // Add video resource
             lesson.resources.push({
               title: video.title || "Video from PDF",
               url: video.watchUrl || video.embedUrl || "",
               type: "video" as const,
             });
-            
+
             videoIndex = (videoIndex + 1) % allLessons.length;
           }
         });
@@ -115,13 +122,10 @@ export async function generateCourseFromText(
     return {
       error:
         e?.message ||
-        e?.message ||
         "An unexpected error occurred while generating the course. Please try again later.",
     };
   }
 }
-
-import { generateQuiz } from "@/ai/flows/generate-quiz";
 
 export async function generateQuizFromText(
   text: string
@@ -143,4 +147,60 @@ export async function generateQuizFromText(
       error: e?.message || "Failed to generate quiz.",
     };
   }
+}
+
+export async function getQuizPapers() {
+  return QUIZ_PAPERS.map((paper) => ({
+    id: paper.id,
+    title: paper.title,
+    description: paper.description ?? "",
+    questionCount: paper.questions.length,
+  }));
+}
+
+export async function generateQuizFromPaper(paperId: string): Promise<Course | { error: string }> {
+  const paper = getQuizPaperById(paperId);
+  if (!paper) {
+    return { error: `Quiz paper not found: ${paperId}` };
+  }
+
+  // Map QuizQuestion[] -> Course structure
+  const quizQuestions: QuizQuestion[] = paper.questions.map((q, index) => ({
+    question: q.questionText,
+    type: "MCQ",
+    options: q.options ?? [],
+    answer: q.answerText,
+    explanation: q.explanation ?? "Correct answer from paper.",
+  }));
+
+  const lesson: Lesson = {
+    id: `lesson-${paper.id}`,
+    lesson_title: "Full Question Bank",
+    key_points: ["Static Question Bank"],
+    time_estimate_minutes: 60,
+    content_summary: "Complete set of questions from the selected paper.",
+    content_snippet: "Complete set of questions from the selected paper.",
+    quiz: quizQuestions,
+    resources: [],
+    isCompleted: false
+  };
+
+  const session: Session = {
+    id: `session-${paper.id}`,
+    session_title: "Quiz Session",
+    lessons: [lesson],
+  };
+
+  const course: Course = {
+    course_title: paper.title,
+    description: paper.description ?? "Static Quiz Paper",
+    readiness_score: 100,
+    sessions: [session],
+    analysis_report: {
+      course_title: paper.title,
+      modules: []
+    }
+  };
+
+  return course;
 }

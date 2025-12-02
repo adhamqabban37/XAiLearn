@@ -17,7 +17,7 @@ export async function generateQuiz(
         "You are an expert AI quiz generator. Output ONLY valid JSON, no markdown or explanation.";
 
     // Truncate very long content to avoid timeouts
-    const maxContentLength = 12000;
+    const maxContentLength = 100000;
     const truncatedContent =
         input.textContent.length > maxContentLength
             ? input.textContent.substring(0, maxContentLength) +
