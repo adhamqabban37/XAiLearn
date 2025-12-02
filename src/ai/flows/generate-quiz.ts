@@ -9,55 +9,98 @@ export type GenerateQuizInput = {
 
 export type GenerateQuizOutput = any;
 
+const CHUNK_SIZE = 20000; // Process ~20k characters per chunk to stay within output limits
+
+async function processChunk(text: string, chunkIndex: number, totalChunks: number): Promise<any[]> {
+    console.log(`📚 Processing chunk ${chunkIndex + 1}/${totalChunks} (${text.length} chars)...`);
+
+    const system = "You are an expert AI quiz generator. Output ONLY valid JSON, no markdown or explanation.";
+    const prompt = quizPromptTemplate.replace(
+        "[TEXT_TO_ANALYZE_WILL_BE_INSERTED_HERE]",
+        text
+    );
+
+    let out = "";
+    try {
+        for await (const chunk of aiGenerateStream(prompt, {
+            system,
+            timeout: 300_000,
+        })) {
+            out += chunk;
+        }
+
+        // Extract JSON
+        let jsonStr = out.trim();
+        if (jsonStr.includes("```json")) {
+            const match = jsonStr.match(/```json\s*([\s\S]*?)\s*```/);
+            jsonStr = match ? match[1] : jsonStr;
+        } else if (jsonStr.includes("```")) {
+            const match = jsonStr.match(/```\s*([\s\S]*?)\s*```/);
+            jsonStr = match ? match[1] : jsonStr;
+        }
+
+        // Find the JSON object
+        const match = jsonStr.match(/\{[\s\S]*\}/);
+        if (!match) {
+            console.warn(`Chunk ${chunkIndex + 1} returned no valid JSON object.`);
+            return [];
+        }
+
+        const parsed = JSON.parse(match[0]);
+        // Extract questions from the specific schema path
+        const questions = parsed?.modules?.[0]?.lessons?.[0]?.quiz || [];
+        console.log(`✅ Chunk ${chunkIndex + 1} extracted ${questions.length} questions.`);
+        return questions;
+
+    } catch (e) {
+        console.error(`Error processing chunk ${chunkIndex + 1}:`, e);
+        return [];
+    }
+}
+
 export async function generateQuiz(
     input: GenerateQuizInput
 ): Promise<GenerateQuizOutput> {
-    console.log("📚 Starting quiz generation...");
-    const system =
-        "You are an expert AI quiz generator. Output ONLY valid JSON, no markdown or explanation.";
+    console.log("📚 Starting quiz generation with chunking strategy...");
 
-    // Truncate very long content to avoid timeouts
-    const maxContentLength = 100000;
-    const truncatedContent =
-        input.textContent.length > maxContentLength
-            ? input.textContent.substring(0, maxContentLength) +
-            "...[content truncated]"
-            : input.textContent;
+    const text = input.textContent;
+    const chunks: string[] = [];
 
-    const prompt = quizPromptTemplate.replace(
-        "[TEXT_TO_ANALYZE_WILL_BE_INSERTED_HERE]",
-        truncatedContent
+    // Split text into chunks
+    for (let i = 0; i < text.length; i += CHUNK_SIZE) {
+        chunks.push(text.slice(i, i + CHUNK_SIZE));
+    }
+
+    console.log(`Splitting content into ${chunks.length} chunks.`);
+
+    // Process chunks in parallel
+    const results = await Promise.all(
+        chunks.map((chunk, index) => processChunk(chunk, index, chunks.length))
     );
 
-    console.log("🤖 Streaming response for quiz...");
-    let out = "";
-    for await (const chunk of aiGenerateStream(prompt, {
-        system,
-        timeout: 300_000,
-    })) {
-        out += chunk;
+    // Merge all questions
+    const allQuestions = results.flat();
+    console.log(`🎉 Total questions extracted: ${allQuestions.length}`);
+
+    if (allQuestions.length === 0) {
+        throw new Error("Could not extract any questions from the provided text.");
     }
 
-    // Extract JSON
-    let jsonStr = out.trim();
-    if (jsonStr.includes("```json")) {
-        const match = jsonStr.match(/```json\s*([\s\S]*?)\s*```/);
-        jsonStr = match ? match[1] : jsonStr;
-    } else if (jsonStr.includes("```")) {
-        const match = jsonStr.match(/```\s*([\s\S]*?)\s*```/);
-        jsonStr = match ? match[1] : jsonStr;
-    }
-
-    const match = jsonStr.match(/\{[\s\S]*\}/);
-    if (!match) {
-        throw new Error("AI did not return a valid JSON object.");
-    }
-
-    try {
-        const parsed = JSON.parse(match[0]);
-        return parsed;
-    } catch (e) {
-        console.error("JSON parse error:", e);
-        throw new Error("AI returned malformed JSON.");
-    }
+    // Construct the final response object matching the expected schema
+    return {
+        course_title: "Extracted Quiz",
+        modules: [
+            {
+                module_title: "Quiz Session",
+                lessons: [
+                    {
+                        lesson_title: "Full Question Bank",
+                        key_points: ["Extracted from uploaded documents"],
+                        time_estimate_minutes: Math.ceil(allQuestions.length * 1.5), // Approx 1.5 min per question
+                        quiz: allQuestions
+                    }
+                ]
+            }
+        ]
+    };
 }
