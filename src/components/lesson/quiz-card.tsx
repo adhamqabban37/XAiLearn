@@ -12,8 +12,10 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { CheckCircle, XCircle, ArrowDown } from "lucide-react";
+import { CheckCircle, XCircle, Play, Settings2 } from "lucide-react";
 import { QuestionMarkIcon } from "../ui/icons";
+import { Label } from "../ui/label";
+import { RadioGroup, RadioGroupItem } from "../ui/radio-group";
 
 interface QuizCardProps {
   questions: QuizQuestion[];
@@ -22,7 +24,13 @@ interface QuizCardProps {
 
 type AnswerState = "unanswered" | "correct" | "incorrect";
 
-export function QuizCard({ questions, onQuizComplete }: QuizCardProps) {
+export function QuizCard({ questions: allQuestions, onQuizComplete }: QuizCardProps) {
+  // Start Screen State
+  const [hasStarted, setHasStarted] = useState(false);
+  const [questionCount, setQuestionCount] = useState<string>("all");
+  const [activeQuestions, setActiveQuestions] = useState<QuizQuestion[]>([]);
+
+  // Quiz State
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
   const [selectedAnswer, setSelectedAnswer] = useState<string | null>(null);
   const [answerState, setAnswerState] = useState<AnswerState>("unanswered");
@@ -30,12 +38,35 @@ export function QuizCard({ questions, onQuizComplete }: QuizCardProps) {
   const [isCompleted, setIsCompleted] = useState(false);
   const [hasScrolled, setHasScrolled] = useState(false);
 
+  // Initialize active questions when starting
+  const handleStartQuiz = () => {
+    let count = allQuestions.length;
+    if (questionCount !== "all") {
+      count = Math.min(parseInt(questionCount), allQuestions.length);
+    }
+
+    // Shuffle and slice
+    const shuffled = [...allQuestions].sort(() => 0.5 - Math.random());
+    const selected = shuffled.slice(0, count);
+
+    setActiveQuestions(selected);
+    setHasStarted(true);
+
+    // Reset quiz state just in case
+    setCurrentQuestionIndex(0);
+    setSelectedAnswer(null);
+    setAnswerState("unanswered");
+    setCorrectAnswers(0);
+    setIsCompleted(false);
+    setHasScrolled(false);
+  };
+
   // Trigger callback when quiz completes - run only once
   useEffect(() => {
     if (isCompleted && !hasScrolled) {
       // Calculate pass threshold (70%)
       const passThreshold = 0.7;
-      const passed = correctAnswers / questions.length >= passThreshold;
+      const passed = correctAnswers / activeQuestions.length >= passThreshold;
 
       // Auto-mark lesson complete if passed
       if (passed && onQuizComplete) {
@@ -45,12 +76,74 @@ export function QuizCard({ questions, onQuizComplete }: QuizCardProps) {
       setHasScrolled(true);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isCompleted, correctAnswers, questions.length]);
+  }, [isCompleted, correctAnswers, activeQuestions.length]);
+
+  if (!hasStarted) {
+    return (
+      <Card className="bg-card shadow-sm border-primary/20">
+        <CardHeader className="text-center pb-2">
+          <div className="mx-auto bg-primary/10 p-3 rounded-full w-fit mb-2">
+            <Settings2 className="w-6 h-6 text-primary" />
+          </div>
+          <CardTitle className="text-xl sm:text-2xl">Quiz Setup</CardTitle>
+          <CardDescription>
+            This quiz has {allQuestions.length} questions available.
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-6">
+          <div className="space-y-3">
+            <Label className="text-base font-medium text-center block">
+              How many questions would you like to take?
+            </Label>
+            <RadioGroup
+              defaultValue="all"
+              onValueChange={setQuestionCount}
+              className="grid grid-cols-2 sm:grid-cols-4 gap-2"
+            >
+              {[5, 10, 20].map((count) => (
+                allQuestions.length >= count && (
+                  <div key={count}>
+                    <RadioGroupItem
+                      value={count.toString()}
+                      id={`count-${count}`}
+                      className="peer sr-only"
+                    />
+                    <Label
+                      htmlFor={`count-${count}`}
+                      className="flex flex-col items-center justify-between rounded-md border-2 border-muted bg-popover p-4 hover:bg-accent hover:text-accent-foreground peer-data-[state=checked]:border-primary [&:has([data-state=checked])]:border-primary cursor-pointer text-center h-full"
+                    >
+                      <span className="text-xl font-bold">{count}</span>
+                      <span className="text-xs text-muted-foreground">Questions</span>
+                    </Label>
+                  </div>
+                )
+              ))}
+              <div>
+                <RadioGroupItem value="all" id="count-all" className="peer sr-only" />
+                <Label
+                  htmlFor="count-all"
+                  className="flex flex-col items-center justify-between rounded-md border-2 border-muted bg-popover p-4 hover:bg-accent hover:text-accent-foreground peer-data-[state=checked]:border-primary [&:has([data-state=checked])]:border-primary cursor-pointer text-center h-full"
+                >
+                  <span className="text-xl font-bold">All</span>
+                  <span className="text-xs text-muted-foreground">({allQuestions.length})</span>
+                </Label>
+              </div>
+            </RadioGroup>
+          </div>
+        </CardContent>
+        <CardFooter>
+          <Button onClick={handleStartQuiz} className="w-full text-lg py-6 btn-gradient">
+            <Play className="w-5 h-5 mr-2 fill-current" /> Start Quiz
+          </Button>
+        </CardFooter>
+      </Card>
+    );
+  }
 
   if (isCompleted) {
     const passThreshold = 0.7;
-    const passed = correctAnswers / questions.length >= passThreshold;
-    const percentage = Math.round((correctAnswers / questions.length) * 100);
+    const passed = correctAnswers / activeQuestions.length >= passThreshold;
+    const percentage = Math.round((correctAnswers / activeQuestions.length) * 100);
 
     return (
       <Card
@@ -68,44 +161,42 @@ export function QuizCard({ questions, onQuizComplete }: QuizCardProps) {
             {passed ? "Quiz Complete! 🎉" : "Review and Try Again"}
           </CardTitle>
           <CardDescription className="text-sm sm:text-base text-center">
-            You answered {correctAnswers} out of {questions.length} questions
+            You answered {correctAnswers} out of {activeQuestions.length} questions
             correctly ({percentage}%).
             {passed
               ? " Lesson complete! ✨"
-              : ` You need ${Math.ceil(questions.length * passThreshold)} correct to pass.`}
+              : ` You need ${Math.ceil(activeQuestions.length * passThreshold)} correct to pass.`}
           </CardDescription>
         </CardHeader>
-        <CardFooter className="flex justify-center pt-2 sm:pt-4">
-          <div className="text-center space-y-2">
-            {passed ? (
-              <p className="text-sm text-muted-foreground">
-                ✅ Lesson marked complete automatically
-              </p>
-            ) : (
-              <Button
-                variant="outline"
-                size="sm"
-                className="touch-target text-base"
-                onClick={() => {
-                  // Reset quiz
-                  setCurrentQuestionIndex(0);
-                  setSelectedAnswer(null);
-                  setAnswerState("unanswered");
-                  setCorrectAnswers(0);
-                  setIsCompleted(false);
-                  setHasScrolled(false);
-                }}
-              >
-                Try Again
-              </Button>
-            )}
-          </div>
+        <CardFooter className="flex justify-center pt-2 sm:pt-4 gap-3">
+          <Button
+            variant="outline"
+            onClick={() => setHasStarted(false)}
+            className="touch-target"
+          >
+            Change Settings
+          </Button>
+          {passed ? (
+            <p className="text-sm text-muted-foreground flex items-center">
+              ✅ Lesson marked complete
+            </p>
+          ) : (
+            <Button
+              onClick={() => {
+                // Restart with same settings
+                handleStartQuiz();
+              }}
+              className="touch-target"
+            >
+              Try Again
+            </Button>
+          )}
         </CardFooter>
       </Card>
     );
   }
 
-  const currentQuestion = questions[currentQuestionIndex];
+  const currentQuestion = activeQuestions[currentQuestionIndex];
 
   const handleCheckAnswer = () => {
     if (!selectedAnswer) return;
@@ -124,7 +215,7 @@ export function QuizCard({ questions, onQuizComplete }: QuizCardProps) {
   const handleNext = () => {
     setSelectedAnswer(null);
     setAnswerState("unanswered");
-    if (currentQuestionIndex < questions.length - 1) {
+    if (currentQuestionIndex < activeQuestions.length - 1) {
       setCurrentQuestionIndex((prev) => prev + 1);
     } else {
       setIsCompleted(true);
@@ -136,7 +227,7 @@ export function QuizCard({ questions, onQuizComplete }: QuizCardProps) {
     console.log(`⏭️ Skipped question ${currentQuestionIndex + 1}`);
     setSelectedAnswer(null);
     setAnswerState("unanswered");
-    if (currentQuestionIndex < questions.length - 1) {
+    if (currentQuestionIndex < activeQuestions.length - 1) {
       setCurrentQuestionIndex((prev) => prev + 1);
     } else {
       setIsCompleted(true);
@@ -154,7 +245,7 @@ export function QuizCard({ questions, onQuizComplete }: QuizCardProps) {
             Check your understanding
           </CardTitle>
           <CardDescription className="text-sm">
-            Question {currentQuestionIndex + 1} of {questions.length}
+            Question {currentQuestionIndex + 1} of {activeQuestions.length}
           </CardDescription>
         </div>
       </CardHeader>
@@ -169,15 +260,13 @@ export function QuizCard({ questions, onQuizComplete }: QuizCardProps) {
             {currentQuestion.options.map((option, index) => (
               <label
                 key={index}
-                className={`flex items-center gap-3 p-3 sm:p-4 rounded-md border cursor-pointer transition-colors touch-target ${
-                  selectedAnswer === option
+                className={`flex items-center gap-3 p-3 sm:p-4 rounded-md border cursor-pointer transition-colors touch-target ${selectedAnswer === option
                     ? "border-primary bg-primary/10"
                     : "border-border hover:bg-accent"
-                } ${
-                  answerState !== "unanswered"
+                  } ${answerState !== "unanswered"
                     ? "cursor-not-allowed opacity-70"
                     : ""
-                }`}
+                  }`}
               >
                 <input
                   type="radio"
@@ -255,7 +344,7 @@ export function QuizCard({ questions, onQuizComplete }: QuizCardProps) {
             onClick={handleNext}
             className="touch-target text-base w-full sm:w-auto"
           >
-            {currentQuestionIndex < questions.length - 1
+            {currentQuestionIndex < activeQuestions.length - 1
               ? "Next Question"
               : "Finish Quiz"}
           </Button>
