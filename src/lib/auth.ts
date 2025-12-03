@@ -46,8 +46,31 @@ export const logOut = async () => {
 export const getUserProfile = async (
   _uid: string
 ): Promise<UserProfile | null> => {
-  // TODO: Implement Supabase-backed profiles if needed
-  return null;
+  if (!isSupabaseConfigured) return null;
+
+  try {
+    const { data: { user }, error } = await supabase.auth.getUser();
+    if (error || !user) return null;
+
+    // If a specific UID was requested and it doesn't match current user, 
+    // we might need to fetch from a public profiles table. 
+    // For now, we assume this function is mostly used for "current user".
+    if (_uid && user.id !== _uid) {
+      console.warn("[auth.getUserProfile] Requested UID does not match current session UID");
+      // TODO: If you have a 'profiles' table, fetch from there.
+    }
+
+    return {
+      uid: user.id,
+      email: user.email || "",
+      displayName: user.user_metadata?.display_name || "User",
+      createdAt: new Date(user.created_at),
+      lastLoginAt: user.last_sign_in_at ? new Date(user.last_sign_in_at) : new Date(),
+    };
+  } catch (e) {
+    console.error("[auth.getUserProfile] Error fetching user:", e);
+    return null;
+  }
 };
 
 // Course and progress functions
@@ -241,7 +264,7 @@ export const markCourseComplete = async (
       })
       .eq("id", courseId)
       .eq("user_id", uid);
-    
+
     if (error) throw error;
     return true;
   } catch (e) {
@@ -265,21 +288,21 @@ export const getCompletedCourses = async (
       console.warn("[auth.getCompletedCourses] Supabase not configured; returning []");
       return [] as any;
     }
-    
+
     if (!uid) {
       console.error('[auth.getCompletedCourses] Invalid input: uid is null/undefined');
       return [];
     }
-    
+
     console.log('[auth.getCompletedCourses] Fetching completed courses for user:', uid);
-    
+
     const { data, error } = await supabase
       .from("user_courses")
       .select("id, course, progress, saved_at, last_accessed_at, completed_at")
       .eq("user_id", uid)
       .not("completed_at", "is", null)
       .order("completed_at", { ascending: false });
-    
+
     if (error) {
       console.error('[auth.getCompletedCourses] Supabase error details:', {
         message: error.message,
@@ -290,9 +313,9 @@ export const getCompletedCourses = async (
       });
       throw error;
     }
-    
+
     console.log('[auth.getCompletedCourses] Found', data?.length || 0, 'completed courses');
-    
+
     return (data || []).map((row: any) => ({
       courseId: row.id as string,
       course: row.course as Course,
@@ -325,21 +348,21 @@ export const getInProgressCourses = async (
       console.warn("[auth.getInProgressCourses] Supabase not configured; returning []");
       return [] as any;
     }
-    
+
     if (!uid) {
       console.error('[auth.getInProgressCourses] Invalid input: uid is null/undefined');
       return [];
     }
-    
+
     console.log('[auth.getInProgressCourses] Fetching in-progress courses for user:', uid);
-    
+
     const { data, error } = await supabase
       .from("user_courses")
       .select("id, course, progress, saved_at, last_accessed_at, completed_at")
       .eq("user_id", uid)
       .is("completed_at", null)
       .order("last_accessed_at", { ascending: false });
-    
+
     if (error) {
       console.error('[auth.getInProgressCourses] Supabase error details:', {
         message: error.message,
@@ -350,9 +373,9 @@ export const getInProgressCourses = async (
       });
       throw error;
     }
-    
+
     console.log('[auth.getInProgressCourses] Found', data?.length || 0, 'in-progress courses');
-    
+
     return (data || []).map((row: any) => ({
       courseId: row.id as string,
       course: row.course as Course,

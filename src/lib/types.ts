@@ -9,16 +9,16 @@ type LessonSchema = Module["lessons"][number];
 // A generic resource type for the client, combining all possible fields
 type ResourceSchema =
   | (NonNullable<NonNullable<LessonSchema["resources"]>["youtube"]>[number] & {
-      type: "video";
-    })
+    type: "video";
+  })
   | (NonNullable<NonNullable<LessonSchema["resources"]>["articles"]>[number] & {
-      type: "article";
-    })
+    type: "article";
+  })
   | (NonNullable<
-      NonNullable<LessonSchema["resources"]>["pdfs_docs"]
-    >[number] & {
-      type: "docs";
-    });
+    NonNullable<LessonSchema["resources"]>["pdfs_docs"]
+  >[number] & {
+    type: "docs";
+  });
 
 // Augmented types with client-side IDs and more details for the interactive phase
 export type Lesson = Omit<LessonSchema, "resources" | "quiz"> & {
@@ -33,6 +33,7 @@ export type Lesson = Omit<LessonSchema, "resources" | "quiz"> & {
     explanation?: string;
   }[];
   timeEstimateMinutes?: number;
+  isCompleted?: boolean;
 };
 
 export type Session = {

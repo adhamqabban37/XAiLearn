@@ -1,9 +1,5 @@
 "use server";
 
-import { generateObject } from "ai";
-import { google } from "@ai-sdk/google";
-import { z } from "zod";
-import { promptTemplate } from "@/lib/prompt-template";
 import { AnalyzeDocumentOutputSchema } from "@/ai/flows/schemas";
 import { analyzeDocument } from "@/ai/flows/restructure-messy-pdf";
 import { auditCourse } from "@/ai/flows/audit-course";
@@ -57,7 +53,7 @@ export async function generateCourseFromText(
       };
     }
 
-    let course = transformAnalysisToCourse(analysis);
+    const course = transformAnalysisToCourse(analysis);
 
     // Post-processing: Ensure PDF videos are included in the course
     if (pdfVideos && pdfVideos.length > 0) {

@@ -3,7 +3,7 @@ import type { NextConfig } from "next";
 const nextConfig: NextConfig = {
   output: "standalone",
   distDir: ".next",
-  typescript: { ignoreBuildErrors: true },
+  // typescript: { ignoreBuildErrors: true },
   eslint: { ignoreDuringBuilds: true },
   poweredByHeader: false,
   compress: true,
