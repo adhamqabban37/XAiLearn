@@ -62,42 +62,51 @@ async function processChunk(text: string, chunkIndex: number, totalChunks: numbe
 export async function generateQuiz(
     input: GenerateQuizInput
 ): Promise<GenerateQuizOutput> {
-    console.log("📚 Starting quiz generation with chunking strategy...");
+    console.log("📚 [Quiz] Starting generation...");
 
-    const text = input.textContent;
+    const text = input.textContent || "";
+
+    // 1. Validate Input
+    if (text.length < 100) {
+        throw new Error("Input text is too short to generate a quiz.");
+    }
+
     const chunks: string[] = [];
-
-    // Split text into chunks
     for (let i = 0; i < text.length; i += CHUNK_SIZE) {
         chunks.push(text.slice(i, i + CHUNK_SIZE));
     }
 
-    console.log(`Splitting content into ${chunks.length} chunks.`);
+    console.log(`🔹 [Quiz] Split into ${chunks.length} chunks.`);
 
-    // Process chunks in parallel
+    // 2. Process Chunks (Parallel)
     const results = await Promise.all(
         chunks.map((chunk, index) => processChunk(chunk, index, chunks.length))
     );
 
-    // Merge all questions
+    // 3. Merge & Validate
     const allQuestions = results.flat();
-    console.log(`🎉 Total questions extracted: ${allQuestions.length}`);
+    console.log(`🎉 [Quiz] Total questions generated: ${allQuestions.length}`);
 
     if (allQuestions.length === 0) {
-        throw new Error("Could not extract any questions from the provided text.");
+        console.warn("⚠️ [Quiz] No questions generated. Returning empty set instead of crashing.");
+        // Return a valid empty structure so the UI can handle it gracefully
+        return {
+            course_title: "Generated Quiz (Empty)",
+            modules: []
+        };
     }
 
-    // Construct the final response object matching the expected schema
+    // 4. Return Success
     return {
-        course_title: "Extracted Quiz",
+        course_title: "Generated Quiz",
         modules: [
             {
                 module_title: "Quiz Session",
                 lessons: [
                     {
                         lesson_title: "Full Question Bank",
-                        key_points: ["Extracted from uploaded documents"],
-                        time_estimate_minutes: Math.ceil(allQuestions.length * 1.5), // Approx 1.5 min per question
+                        key_points: ["Generated from uploaded content"],
+                        time_estimate_minutes: Math.ceil(allQuestions.length * 1.5),
                         quiz: allQuestions
                     }
                 ]

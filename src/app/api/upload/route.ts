@@ -10,15 +10,33 @@ export async function POST(req: NextRequest) {
             return NextResponse.json({ error: "No file provided" }, { status: 400 });
         }
 
-        const buffer = Buffer.from(await file.arrayBuffer());
-        const data = await pdf(buffer);
+        console.log(`📄 [PDF] Received file: ${file.name} (${file.size} bytes)`);
 
+        const buffer = Buffer.from(await file.arrayBuffer());
+
+        // 1. Extract Text
+        const data = await pdf(buffer);
+        const rawText = data.text || "";
+
+        // 2. Validate Extraction
+        if (rawText.trim().length < 50) {
+            console.error("❌ [PDF] Extraction failed: Text too short or empty.");
+            return NextResponse.json(
+                { error: "Could not read text from this PDF. It might be an image-only scan." },
+                { status: 422 }
+            );
+        }
+
+        console.log(`✅ [PDF] Extracted ${rawText.length} chars. Passing to AI...`);
+
+        // 3. Return Clean Data
         return NextResponse.json({
-            text: data.text,
-            videos: [], // Placeholder for video extraction if needed later
+            text: rawText,
+            videos: [], // Video extraction is separate, 0 videos is NOT an error
         });
+
     } catch (error: any) {
-        console.error("PDF Upload Error:", error);
+        console.error("❌ [PDF] Critical Upload Error:", error);
         return NextResponse.json(
             { error: "Failed to process PDF: " + (error.message || "Unknown error") },
             { status: 500 }
