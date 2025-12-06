@@ -237,9 +237,9 @@ export function ContentForm({
       }
       const parsed = await res.json();
       let text: string = parsed?.text || "";
-      if (!text || text.trim().length < 100) {
+      if (!text || text.trim().length < 50) {
         throw new Error(
-          "The PDF content is too short or could not be extracted. Please try a different PDF."
+          "The PDF content is too short or could not be extracted. Please try uploading a longer PDF with more text content."
         );
       }
 
