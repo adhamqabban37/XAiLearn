@@ -177,7 +177,9 @@ export function ContentForm({
         const courses = savedCourses ? JSON.parse(savedCourses) : [];
 
         // Check if course already exists
-        const existingIndex = courses.findIndex((c: Course) => c.course_title === course.course_title);
+        const existingIndex = courses.findIndex(
+          (c: Course) => c.course_title === course.course_title
+        );
 
         if (existingIndex >= 0) {
           courses[existingIndex] = course;
@@ -232,7 +234,7 @@ export function ContentForm({
         try {
           const err = await res.json();
           if (err?.error) msg = err.error;
-        } catch { }
+        } catch {}
         throw new Error(msg);
       }
       const parsed = await res.json();
@@ -251,7 +253,9 @@ export function ContentForm({
 
       setUploadProgress(70);
       const pdfVideos = parsed?.videos || [];
-      console.log(`🎥 Passing ${pdfVideos.length} videos from PDF to course generation`);
+      console.log(
+        `🎥 Passing ${pdfVideos.length} videos from PDF to course generation`
+      );
 
       let result;
       if (mode === "quiz") {
@@ -328,11 +332,12 @@ export function ContentForm({
             <>
               <div className="text-center space-y-2">
                 <h3 className="text-xl sm:text-2xl md:text-3xl font-bold flex items-center justify-center gap-2 font-headline">
-                  <Wand2 className="text-primary h-5 w-5 sm:h-6 sm:w-6" /> Craft with a prompt
+                  <Wand2 className="text-primary h-5 w-5 sm:h-6 sm:w-6" /> Craft
+                  with a prompt
                 </h3>
                 <p className="text-muted-foreground text-sm sm:text-base">
-                  Generate course material with this powerful prompt, then bring it
-                  back here.
+                  Generate course material with this powerful prompt, then bring
+                  it back here.
                 </p>
               </div>
 
@@ -379,19 +384,25 @@ export function ContentForm({
                               <FormControl>
                                 <RadioGroupItem value="short" />
                               </FormControl>
-                              <Label className="font-normal text-sm sm:text-base cursor-pointer">Short</Label>
+                              <Label className="font-normal text-sm sm:text-base cursor-pointer">
+                                Short
+                              </Label>
                             </FormItem>
                             <FormItem className="flex items-center space-x-2 space-y-0 touch-target">
                               <FormControl>
                                 <RadioGroupItem value="medium" />
                               </FormControl>
-                              <Label className="font-normal text-sm sm:text-base cursor-pointer">Medium</Label>
+                              <Label className="font-normal text-sm sm:text-base cursor-pointer">
+                                Medium
+                              </Label>
                             </FormItem>
                             <FormItem className="flex items-center space-x-2 space-y-0 touch-target">
                               <FormControl>
                                 <RadioGroupItem value="long" />
                               </FormControl>
-                              <Label className="font-normal text-sm sm:text-base cursor-pointer">Long</Label>
+                              <Label className="font-normal text-sm sm:text-base cursor-pointer">
+                                Long
+                              </Label>
                             </FormItem>
                           </RadioGroup>
                         </FormControl>
@@ -428,9 +439,10 @@ export function ContentForm({
                     className={`
                       border-2 border-dashed rounded-xl p-6 sm:p-8 md:p-10 text-center cursor-pointer transition-all duration-300
                       flex flex-col items-center justify-center min-h-[200px] sm:min-h-[240px] gap-3 sm:gap-4
-                      ${isDragActive
-                        ? "border-primary bg-primary/5 scale-[1.02]"
-                        : "border-border hover:border-primary/50 hover:bg-accent/5"
+                      ${
+                        isDragActive
+                          ? "border-primary bg-primary/5 scale-[1.02]"
+                          : "border-border hover:border-primary/50 hover:bg-accent/5"
                       }
                     `}
                   >
@@ -442,9 +454,9 @@ export function ContentForm({
                       {isLoading
                         ? processingStep || "Processing..."
                         : fileName ||
-                        (isDragActive
-                          ? "Drop the PDF here!"
-                          : "Upload or Drag & Drop a PDF")}
+                          (isDragActive
+                            ? "Drop the PDF here!"
+                            : "Upload or Drag & Drop a PDF")}
                     </p>
                     <p className="text-xs text-muted-foreground px-2">
                       The AI will read the file and build a course
@@ -542,9 +554,10 @@ export function ContentForm({
                 className={`
                   border-2 border-dashed rounded-xl p-6 sm:p-8 text-center cursor-pointer transition-all duration-300
                   flex flex-col items-center justify-center min-h-[160px] gap-3
-                  ${isDragActive
-                    ? "border-primary bg-primary/5 scale-[1.02]"
-                    : "border-border hover:border-primary/50 hover:bg-accent/5"
+                  ${
+                    isDragActive
+                      ? "border-primary bg-primary/5 scale-[1.02]"
+                      : "border-border hover:border-primary/50 hover:bg-accent/5"
                   }
                 `}
               >
@@ -556,9 +569,9 @@ export function ContentForm({
                   {isLoading && !selectedPaperId
                     ? processingStep || "Processing..."
                     : fileName ||
-                    (isDragActive
-                      ? "Drop the PDF here!"
-                      : "Upload or Drag & Drop a PDF")}
+                      (isDragActive
+                        ? "Drop the PDF here!"
+                        : "Upload or Drag & Drop a PDF")}
                 </p>
                 <p className="text-xs text-muted-foreground px-2">
                   We will extract every question found in the PDF.
@@ -572,7 +585,9 @@ export function ContentForm({
       {error && (
         <Alert variant="destructive" className="mt-4 sm:mt-6">
           <AlertCircle className="h-4 w-4" />
-          <AlertTitle className="text-sm sm:text-base">Oops! Something went wrong.</AlertTitle>
+          <AlertTitle className="text-sm sm:text-base">
+            Oops! Something went wrong.
+          </AlertTitle>
           <AlertDescription className="text-sm">{error}</AlertDescription>
         </Alert>
       )}

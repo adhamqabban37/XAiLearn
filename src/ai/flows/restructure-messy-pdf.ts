@@ -52,78 +52,156 @@ export async function analyzeDocument(
     videoContext += `- If you need additional videos beyond what's in the PDF, you can add them, but prioritize the PDF videos first\n\n`;
   }
 
-  const prompt = `You are creating an educational course. You MUST return a valid JSON object with at least 1 module.
+  const prompt = `You are an expert AI instructional designer creating a structured educational course.
 
-Create a structured course in JSON format from this text. Requirements:
-- 2-3 modules with 2-3 lessons each
-- Each lesson: title, 3-5 key points, 2-3 MCQs (4 options, 1 correct)
+TASK: Analyze the provided text and create a comprehensive course in JSON format.
 
-CRITICAL REQUIREMENTS FOR RESOURCES:
-1. YOUTUBE VIDEOS - ${input.pdfVideos && input.pdfVideos.length > 0 
-    ? `FIRST, use the videos provided from the PDF (listed above). THEN, if needed, add additional videos from your knowledge.`
-    : `You MUST provide REAL, VALID YouTube URLs:`}
-   ${input.pdfVideos && input.pdfVideos.length > 0 
-    ? `* PRIORITY: Use the ${input.pdfVideos.length} video(s) extracted from the PDF first`
-    : `* Search your knowledge for actual popular educational videos on this topic
-   * Use videos from verified channels: Crash Course, Khan Academy, freeCodeCamp, MIT OpenCourseWare, 3Blue1Brown, Traversy Media`}
-   * Include the FULL URL starting with "https://www.youtube.com/watch?v=" or "https://youtu.be/"
-   * DO NOT use placeholder URLs like "dQw4w9WgXcQ" - use REAL video IDs
-   ${input.pdfVideos && input.pdfVideos.length === 0 
-    ? `* Example REAL videos you might know:
-     - Python: "https://www.youtube.com/watch?v=rfscVS0vtbw" (Python Full Course - freeCodeCamp)
-     - JavaScript: "https://www.youtube.com/watch?v=PkZNo7MFNFg" (JavaScript Tutorial - freeCodeCamp)
-     - React: "https://www.youtube.com/watch?v=bMknfKXIFA8" (React Course - freeCodeCamp)
-     - Machine Learning: "https://www.youtube.com/watch?v=Gv9_4yMHFhI" (ML Course - freeCodeCamp)`
-    : ''}
+STRUCTURE REQUIREMENTS:
+- 2-3 modules, each with 2-3 lessons
+- Each lesson must include:
+  • lesson_title (string)
+  • summary (string, 2-3 sentences describing what this lesson covers)
+  • key_points (array of 3-5 strings)
+  • time_estimate_minutes (number, 10-30)
+  • quiz (array of 2-3 multiple-choice questions)
+  • videoSearchQuery (optional string - see VIDEO POLICY below)
 
-2. ARTICLES - Provide REAL URLs from reputable sources:
-   * Wikipedia (https://en.wikipedia.org/wiki/...)
-   * MDN Web Docs (https://developer.mozilla.org/...)
-   * Official documentation sites
-   * DO NOT make up URLs - use real ones you know exist
+QUIZ FORMAT:
+Each quiz question must have:
+- question: (string) Clear, specific question text
+- type: "MCQ"
+- options: (array of 4 strings) Four plausible options
+- answer: (string) Exact match to one of the options
+- explanation: (string) Brief explanation of why the answer is correct
 
-- Include 1-2 video resources AND 1-2 article/documentation URLs per lesson
-- Output ONLY the JSON object - NO explanatory text before or after
+VIDEO POLICY - CRITICAL INSTRUCTIONS:
+${input.pdfVideos && input.pdfVideos.length > 0 
+  ? `✅ The user provided ${input.pdfVideos.length} video(s) from their PDF:
+${input.pdfVideos.map((v, i) => `   ${i+1}. "${v.title || 'Video'}"`).join('\n')}
 
-CRITICAL: Your response must be ONLY valid JSON starting with { and ending with }
+VIDEO REQUIREMENTS (READ CAREFULLY):
+- For EACH lesson, you MUST include a "videoSearchQuery" field
+- This field is REQUIRED and must contain 2-5 word search terms ONLY (plain text)
+- NEVER output any http:// or https:// URLs in your JSON
+- NEVER output YouTube video IDs or any URL-like patterns
+- NEVER include the word "youtube" or ".com" in the videoSearchQuery
+- Our system will automatically match the PDF videos to lessons based on semantic similarity
+- If additional videos would help, provide search queries for those lessons too
 
-Required JSON structure (you MUST include at least 1 module with 1 lesson):
+VALID videoSearchQuery examples:
+  ✅ "python functions tutorial"
+  ✅ "machine learning basics"
+  ✅ "data structures algorithms"
+  ❌ "https://youtube.com/watch?v=abc123" (NEVER do this)
+  ❌ "dQw4w9WgXcQ" (NEVER output video IDs)
+
+Example lesson structure:
 {
-  "course_title": "Course Title Here",
-  "modules": [{
-    "module_title": "Module 1 Title",
-    "lessons": [{
-      "lesson_title": "Lesson Title",
-      "key_points": ["point1", "point2", "point3"],
-      "time_estimate_minutes": 15,
-      "quiz": [{
-        "question": "Question text here?",
-        "type": "MCQ",
-        "options": ["Option A", "Option B", "Option C", "Option D"],
-        "answer": "Option A",
-        "explanation": "Why Option A is correct"
-      }],
-      "resources": {
-        "youtube": [
-          {"title": "Real Video Title from Known Channel", "url": "https://www.youtube.com/watch?v=kqtD5dpn9C8"}
-        ],
-        "articles": [
-          {"title": "Real Article Title", "url": "https://en.wikipedia.org/wiki/Real_Topic"}
-        ],
-        "pdfs_docs": []
-      }
-    }]
-  }]
+  "lesson_title": "Introduction to Machine Learning",
+  "summary": "Learn the fundamentals of machine learning and its applications.",
+  "videoSearchQuery": "machine learning basics tutorial"
+}
+`
+  : `ℹ️ No videos were found in the PDF.
+
+VIDEO REQUIREMENTS (READ CAREFULLY):
+- For EACH lesson where video would help learning, you MUST include a "videoSearchQuery" field
+- This field is REQUIRED and must contain 2-5 word search terms ONLY (plain text)
+- NEVER output any http:// or https:// URLs anywhere in your JSON
+- NEVER generate YouTube video IDs (like "dQw4w9WgXcQ" or any 11-character strings)
+- NEVER include the word "youtube" or ".com" in the videoSearchQuery
+- Our system will search YouTube and find appropriate educational videos
+- Use simple, specific search terms that describe the lesson topic
+
+VALID videoSearchQuery examples:
+  ✅ "python variables tutorial"
+  ✅ "react hooks explained"
+  ✅ "SQL joins beginner"
+  ❌ "https://youtube.com/watch?v=xyz" (NEVER do this)
+  ❌ "watch?v=abc123" (NEVER do this)
+
+Example lesson structure:
+{
+  "lesson_title": "Variables and Data Types",
+  "summary": "Understanding how to declare and use variables in Python.",
+  "videoSearchQuery": "python variables data types beginners"
+}
+`}
+
+CRITICAL JSON RULES:
+1. Output ONLY valid JSON - no markdown code blocks (no \`\`\`), no explanations
+2. Your response must start with { and end with }
+3. Always include at least 1 module with at least 1 lesson
+4. NEVER generate fake YouTube URLs (like "dQw4w9WgXcQ" or placeholders)
+5. Use "videoSearchQuery" for video discovery, NOT "url" fields
+6. All text fields must use proper escaping for quotes and special characters
+
+REQUIRED JSON STRUCTURE:
+{
+  "course_title": "Descriptive Course Title Based on Content",
+  "modules": [
+    {
+      "module_title": "Module 1: Foundation Concepts",
+      "lessons": [
+        {
+          "lesson_title": "Specific Lesson Topic",
+          "summary": "Brief 2-3 sentence overview of what this lesson covers and what students will learn.",
+          "key_points": [
+            "First key concept or learning objective",
+            "Second key concept or learning objective",
+            "Third key concept or learning objective",
+            "Fourth key concept (optional)",
+            "Fifth key concept (optional)"
+          ],
+          "time_estimate_minutes": 15,
+          "videoSearchQuery": "optional search query like 'topic tutorial beginner'",
+          "quiz": [
+            {
+              "question": "What is the main purpose of this concept?",
+              "type": "MCQ",
+              "options": [
+                "Option A - plausible but incorrect",
+                "Option B - correct answer",
+                "Option C - plausible but incorrect",
+                "Option D - plausible but incorrect"
+              ],
+              "answer": "Option B - correct answer",
+              "explanation": "Brief explanation of why Option B is the correct answer."
+            }
+          ],
+          "resources": {
+            "articles": [
+              {
+                "title": "Real Article Title from Reputable Source",
+                "url": "https://en.wikipedia.org/wiki/Relevant_Topic"
+              }
+            ],
+            "pdfs_docs": []
+          }
+        }
+      ]
+    }
+  ]
 }
 
-IMPORTANT RULES:
-1. Always include AT LEAST 1 module in the "modules" array
-2. Each module must have AT LEAST 1 lesson
-3. Every URL must be REAL and COMPLETE (no placeholders)
-4. Return ONLY JSON - no markdown, no explanations
-5. If the text is unclear, create a basic course structure based on the general topic
+ARTICLE/DOCUMENTATION URLs:
+Only provide REAL URLs from reputable sources:
+• Wikipedia: https://en.wikipedia.org/wiki/Topic_Name
+• MDN Web Docs (for web development): https://developer.mozilla.org/en-US/docs/...
+• Official documentation (Python.org, React.dev, etc.)
+• DO NOT generate fake URLs - only include articles if you know they exist
+• If unsure, leave the articles array empty
 
-${videoContext}Text to analyze: ${truncatedContent}`;
+FALLBACK BEHAVIOR:
+If the text is too short or unclear:
+- Still create at least 1 module with 1 lesson
+- Base the content on the general topic you can infer
+- Keep it simple but valid
+
+TEXT TO ANALYZE:
+${truncatedContent}
+
+Remember: Output ONLY the JSON object. Start your response with { and end with }. No markdown, no explanations.
 
   console.log("🤖 Streaming response from DeepSeek...");
   let out = "";
@@ -179,6 +257,7 @@ ${videoContext}Text to analyze: ${truncatedContent}`;
   // Validate structure
   if (!parsed.modules || !Array.isArray(parsed.modules) || parsed.modules.length === 0) {
     console.error("❌ AI returned empty or invalid modules:", parsed);
+    console.warn("⚠️ AI course generation failed; using fallback minimal course for this document.");
     console.log("🔧 Creating fallback minimal course structure...");
     
     // Create a minimal fallback course based on the content

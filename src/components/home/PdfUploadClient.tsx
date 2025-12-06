@@ -74,8 +74,14 @@ export default function PdfUploadClient({ onCourseGenerated }: Props) {
 
       // Extract videos from PDF if available
       const pdfVideos = parsed?.videos || [];
-      console.log(`🎥 Passing ${pdfVideos.length} videos from PDF to course generation`);
-      const courseResult = await generateCourseFromText(text, undefined, pdfVideos);
+      console.log(
+        `🎥 Passing ${pdfVideos.length} videos from PDF to course generation`
+      );
+      const courseResult = await generateCourseFromText(
+        text,
+        undefined,
+        pdfVideos
+      );
       if (slowTimer.current) {
         clearTimeout(slowTimer.current);
         slowTimer.current = null;
