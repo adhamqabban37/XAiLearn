@@ -14,6 +14,7 @@ import { CheckCircle, Clock, FileText, Link, ListChecks, HelpCircle, AlertCircle
 import type { Course } from '@/lib/types';
 import { Badge } from '../ui/badge';
 import { Progress } from '../ui/progress';
+import { useToast } from "@/hooks/use-toast";
 
 interface CoursePreviewProps {
   initialCourse: Course;
@@ -26,11 +27,34 @@ export function CoursePreview({ initialCourse, onClear }: CoursePreviewProps) {
   const { saveCourse, startNewSession } = useCourseStorage();
   const router = useRouter();
 
+  const { toast } = useToast();
+
   const handleStartLearning = () => {
-    saveCourse(course);
-    const newSession = startNewSession(parseInt(sessionDuration, 10));
-    if (newSession) {
-      router.push('/lesson');
+    try {
+      saveCourse(course);
+      const dbgDuration = parseInt(sessionDuration, 10);
+      console.log(`[StartLearning] Starting session with duration: ${dbgDuration}m`);
+
+      const newSession = startNewSession(dbgDuration);
+
+      if (newSession) {
+        console.log("[StartLearning] Session created:", newSession.title);
+        router.push('/lesson');
+      } else {
+        console.warn("[StartLearning] startNewSession returned null");
+        toast({
+          variant: "destructive",
+          title: "Session Error",
+          description: "Could not start a new session. The course might be fully completed.",
+        });
+      }
+    } catch (err: any) {
+      console.error("[StartLearning] Error:", err);
+      toast({
+        variant: "destructive",
+        title: "Application Error",
+        description: "An unexpected error occurred: " + err.message,
+      });
     }
   };
 
@@ -45,12 +69,12 @@ export function CoursePreview({ initialCourse, onClear }: CoursePreviewProps) {
           <CardTitle className="text-2xl sm:text-3xl font-headline break-words">{course.course_title}</CardTitle>
           <div className="flex flex-wrap items-center gap-3 sm:gap-4 text-sm text-muted-foreground">
             <div className="flex items-center gap-1">
-                <Clock className="w-4 h-4 shrink-0" />
-                <span>{course.total_estimated_time || 'N/A'}</span>
+              <Clock className="w-4 h-4 shrink-0" />
+              <span>{course.total_estimated_time || 'N/A'}</span>
             </div>
-             <div className="flex items-center gap-1">
-                <FileText className="w-4 h-4 shrink-0" />
-                <span>{totalLessons} lessons</span>
+            <div className="flex items-center gap-1">
+              <FileText className="w-4 h-4 shrink-0" />
+              <span>{totalLessons} lessons</span>
             </div>
           </div>
           <CardDescription className="text-sm sm:text-base leading-relaxed">
@@ -58,10 +82,10 @@ export function CoursePreview({ initialCourse, onClear }: CoursePreviewProps) {
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4 sm:space-y-6 p-4 sm:p-6 pt-0">
-          
+
           <Card className="bg-muted/30">
             <CardHeader className="p-4 sm:p-6">
-              <CardTitle className='flex items-center gap-2 text-lg sm:text-xl'><Sparkles className="text-primary w-5 h-5 sm:w-6 sm:h-6 shrink-0"/> Analysis Report</CardTitle>
+              <CardTitle className='flex items-center gap-2 text-lg sm:text-xl'><Sparkles className="text-primary w-5 h-5 sm:w-6 sm:h-6 shrink-0" /> Analysis Report</CardTitle>
               <CardDescription className="text-sm">The AI has analyzed your document. Here's what it found.</CardDescription>
             </CardHeader>
             <CardContent className="space-y-3 sm:space-y-4 p-4 sm:p-6 pt-0">
@@ -70,7 +94,7 @@ export function CoursePreview({ initialCourse, onClear }: CoursePreviewProps) {
                   <span className="font-bold text-base sm:text-lg">Readiness Score</span>
                   <span className="text-xl sm:text-2xl font-bold text-primary">{readinessScoreValue}%</span>
                 </div>
-                <Progress value={readinessScoreValue} className="h-2.5 sm:h-3"/>
+                <Progress value={readinessScoreValue} className="h-2.5 sm:h-3" />
               </div>
 
               {course.checklist && course.checklist.length > 0 && (
@@ -122,27 +146,27 @@ export function CoursePreview({ initialCourse, onClear }: CoursePreviewProps) {
 
         </CardContent>
         <CardFooter className="flex flex-col items-stretch gap-4 bg-muted/50 p-4 sm:p-6 rounded-b-lg">
-            <div className="flex-1">
-                <h4 className="font-bold mb-3 text-sm sm:text-base">Choose your study session length:</h4>
-                <RadioGroup defaultValue="30" onValueChange={setSessionDuration} className="flex flex-wrap gap-3 sm:gap-4">
-                    <div className="flex items-center space-x-2 touch-target">
-                        <RadioGroupItem value="30" id="r1" />
-                        <Label htmlFor="r1" className="text-sm sm:text-base cursor-pointer">30 min</Label>
-                    </div>
-                    <div className="flex items-center space-x-2 touch-target">
-                        <RadioGroupItem value="45" id="r2" />
-                        <Label htmlFor="r2" className="text-sm sm:text-base cursor-pointer">45 min</Label>
-                    </div>
-                    <div className="flex items-center space-x-2 touch-target">
-                        <RadioGroupItem value="60" id="r3" />
-                        <Label htmlFor="r3" className="text-sm sm:text-base cursor-pointer">60 min</Label>
-                    </div>
-                </RadioGroup>
-            </div>
-            <div className="flex flex-col sm:flex-row gap-3 w-full">
-                 <Button variant="outline" onClick={onClear} className="touch-target text-base w-full sm:w-auto">Start Over</Button>
-                 <Button onClick={handleStartLearning} className="text-base sm:text-lg touch-target w-full sm:flex-1">Start Learning</Button>
-            </div>
+          <div className="flex-1">
+            <h4 className="font-bold mb-3 text-sm sm:text-base">Choose your study session length:</h4>
+            <RadioGroup defaultValue="30" onValueChange={setSessionDuration} className="flex flex-wrap gap-3 sm:gap-4">
+              <div className="flex items-center space-x-2 touch-target">
+                <RadioGroupItem value="30" id="r1" />
+                <Label htmlFor="r1" className="text-sm sm:text-base cursor-pointer">30 min</Label>
+              </div>
+              <div className="flex items-center space-x-2 touch-target">
+                <RadioGroupItem value="45" id="r2" />
+                <Label htmlFor="r2" className="text-sm sm:text-base cursor-pointer">45 min</Label>
+              </div>
+              <div className="flex items-center space-x-2 touch-target">
+                <RadioGroupItem value="60" id="r3" />
+                <Label htmlFor="r3" className="text-sm sm:text-base cursor-pointer">60 min</Label>
+              </div>
+            </RadioGroup>
+          </div>
+          <div className="flex flex-col sm:flex-row gap-3 w-full">
+            <Button variant="outline" onClick={onClear} className="touch-target text-base w-full sm:w-auto">Start Over</Button>
+            <Button onClick={handleStartLearning} className="text-base sm:text-lg touch-target w-full sm:flex-1">Start Learning</Button>
+          </div>
         </CardFooter>
       </Card>
     </div>

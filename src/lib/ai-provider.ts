@@ -1,6 +1,7 @@
 import { githubModelsChatStream } from "./githubModels";
 import { deepseekGenerateStream } from "./deepseek";
 import { ollamaGenerateStream } from "./ollama";
+import { googleGenerateStream } from "./google";
 
 type StreamGen = ReturnType<typeof githubModelsChatStream>;
 
@@ -9,6 +10,10 @@ export function aiGenerateStream(
   opts: { system?: string; timeout?: number; model?: string } = {}
 ): AsyncGenerator<string> {
   const provider = (process.env.AI_PROVIDER || "github").toLowerCase();
+
+  if (provider === "google") {
+    return googleGenerateStream(prompt, opts) as StreamGen;
+  }
   if (provider === "github") {
     return githubModelsChatStream(prompt, opts) as StreamGen;
   }

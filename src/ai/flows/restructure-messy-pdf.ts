@@ -30,7 +30,7 @@ export async function analyzeDocument(
   const truncatedContent =
     input.textContent.length > maxContentLength
       ? input.textContent.substring(0, maxContentLength) +
-        "...[content truncated]"
+      "...[content truncated]"
       : input.textContent;
 
   console.log(`📝 Content length: ${truncatedContent.length} chars`);
@@ -75,9 +75,9 @@ Each quiz question must have:
 - explanation: (string) Brief explanation of why the answer is correct
 
 VIDEO POLICY - CRITICAL INSTRUCTIONS:
-${input.pdfVideos && input.pdfVideos.length > 0 
-  ? `✅ The user provided ${input.pdfVideos.length} video(s) from their PDF:
-${input.pdfVideos.map((v, i) => `   ${i+1}. "${v.title || 'Video'}"`).join('\n')}
+${input.pdfVideos && input.pdfVideos.length > 0
+      ? `✅ The user provided ${input.pdfVideos.length} video(s) from their PDF:
+${input.pdfVideos.map((v, i) => `   ${i + 1}. "${v.title || 'Video'}"`).join('\n')}
 
 VIDEO REQUIREMENTS (READ CAREFULLY):
 - For EACH lesson, you MUST include a "videoSearchQuery" field
@@ -102,7 +102,7 @@ Example lesson structure:
   "videoSearchQuery": "machine learning basics tutorial"
 }
 `
-  : `ℹ️ No videos were found in the PDF.
+      : `ℹ️ No videos were found in the PDF.
 
 VIDEO REQUIREMENTS (READ CAREFULLY):
 - For EACH lesson where video would help learning, you MUST include a "videoSearchQuery" field
@@ -201,7 +201,7 @@ If the text is too short or unclear:
 TEXT TO ANALYZE:
 ${truncatedContent}
 
-Remember: Output ONLY the JSON object. Start your response with { and end with }. No markdown, no explanations.
+Remember: Output ONLY the JSON object. Start your response with { and end with }. No markdown, no explanations.`;
 
   console.log("🤖 Streaming response from DeepSeek...");
   let out = "";
@@ -259,7 +259,7 @@ Remember: Output ONLY the JSON object. Start your response with { and end with }
     console.error("❌ AI returned empty or invalid modules:", parsed);
     console.warn("⚠️ AI course generation failed; using fallback minimal course for this document.");
     console.log("🔧 Creating fallback minimal course structure...");
-    
+
     // Create a minimal fallback course based on the content
     const fallbackTitle = parsed.course_title || "Introduction to " + truncatedContent.substring(0, 50).trim();
     return {
