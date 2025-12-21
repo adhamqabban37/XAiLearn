@@ -93,7 +93,7 @@ export function FirebaseDiagnostics() {
     });
 
     // 4. Test Firestore connection with a dummy read
-    if (isOnline && auth.currentUser) {
+    if (isOnline && auth && auth.currentUser && db) {
       try {
         const testDocRef = doc(db, "users", auth.currentUser.uid);
         await getDoc(testDocRef);
@@ -111,7 +111,7 @@ export function FirebaseDiagnostics() {
           details: error?.message || "No details available",
         });
       }
-    } else if (!auth.currentUser) {
+    } else if (auth && !auth.currentUser) {
       diagnostics.push({
         name: "Firestore Connection",
         status: "warning",

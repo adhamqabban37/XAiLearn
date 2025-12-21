@@ -38,6 +38,10 @@ export const awardCertificate = async (
   courseTitle: string,
   userName: string
 ): Promise<string> => {
+  if (!db) {
+    throw new Error("Firestore is not initialized");
+  }
+
   const certificateData: Omit<Certificate, "id"> = {
     userId,
     courseId,
@@ -54,6 +58,10 @@ export const awardCertificate = async (
 export const getUserCertificates = async (
   userId: string
 ): Promise<Certificate[]> => {
+  if (!db) {
+    throw new Error("Firestore is not initialized");
+  }
+
   try {
     const certificatesRef = collection(db, "certificates");
     const q = query(
@@ -92,6 +100,10 @@ export const getUserCertificates = async (
 export const getCertificate = async (
   certificateId: string
 ): Promise<Certificate | null> => {
+  if (!db) {
+    throw new Error("Firestore is not initialized");
+  }
+
   const certificateDoc = await getDoc(doc(db, "certificates", certificateId));
   if (certificateDoc.exists()) {
     const data = certificateDoc.data();
@@ -105,6 +117,10 @@ export const getCertificate = async (
 };
 
 export const incrementDownloadCount = async (certificateId: string) => {
+  if (!db) {
+    throw new Error("Firestore is not initialized");
+  }
+
   const certificateRef = doc(db, "certificates", certificateId);
   const certificateDoc = await getDoc(certificateRef);
 
