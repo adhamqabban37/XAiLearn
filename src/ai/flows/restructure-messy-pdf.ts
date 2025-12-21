@@ -68,11 +68,11 @@ STRUCTURE REQUIREMENTS:
 
 QUIZ FORMAT:
 Each quiz question must have:
-- question: (string) Clear, specific question text
+- question: (string) Clear, specific question text that tests understanding, not just recall.
 - type: "MCQ"
-- options: (array of 4 strings) Four plausible options
-- answer: (string) Exact match to one of the options
-- explanation: (string) Brief explanation of why the answer is correct
+- options: (array of 4 strings) Four plausible options (1 correct, 3 distinct distractors).
+- answer: (string) Exact match to one of the options.
+- explanation: (string) Brief explanation of why the answer is correct.
 
 VIDEO POLICY - CRITICAL INSTRUCTIONS:
 ${input.pdfVideos && input.pdfVideos.length > 0 
@@ -202,6 +202,7 @@ TEXT TO ANALYZE:
 ${truncatedContent}
 
 Remember: Output ONLY the JSON object. Start your response with { and end with }. No markdown, no explanations.
+`;
 
   console.log("🤖 Streaming response from DeepSeek...");
   let out = "";

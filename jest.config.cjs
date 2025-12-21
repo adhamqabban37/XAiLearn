@@ -14,7 +14,7 @@ module.exports = {
     "^<rootDir>/src/lib/__tests__/auth.unit.test.ts$",
     "^<rootDir>/src/lib/__tests__/courses.unit.test.ts$",
   ],
-  setupFilesAfterEnv: ["<rootDir>/jest.setup.js"],
+  setupFilesAfterEnv: ["<rootDir>/jest.setup.cjs"],
   moduleNameMapper: {
     "^@/(.*)$": "<rootDir>/src/$1",
     "^lucide-react$": "<rootDir>/__mocks__/lucide-react.js",

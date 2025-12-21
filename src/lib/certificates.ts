@@ -47,6 +47,7 @@ export const awardCertificate = async (
     downloadCount: 0,
   };
 
+  if (!db) throw new Error("Firestore is not initialized");
   const docRef = await addDoc(collection(db, "certificates"), certificateData);
   return docRef.id;
 };
@@ -55,6 +56,7 @@ export const getUserCertificates = async (
   userId: string
 ): Promise<Certificate[]> => {
   try {
+    if (!db) return [];
     const certificatesRef = collection(db, "certificates");
     const q = query(
       certificatesRef,
@@ -92,6 +94,7 @@ export const getUserCertificates = async (
 export const getCertificate = async (
   certificateId: string
 ): Promise<Certificate | null> => {
+  if (!db) return null;
   const certificateDoc = await getDoc(doc(db, "certificates", certificateId));
   if (certificateDoc.exists()) {
     const data = certificateDoc.data();
@@ -105,6 +108,7 @@ export const getCertificate = async (
 };
 
 export const incrementDownloadCount = async (certificateId: string) => {
+  if (!db) return;
   const certificateRef = doc(db, "certificates", certificateId);
   const certificateDoc = await getDoc(certificateRef);
 

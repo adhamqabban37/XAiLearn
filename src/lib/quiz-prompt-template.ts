@@ -74,4 +74,7 @@ OUTPUT FORMAT:
     }
   ]
 }
+
+Here is the text to analyze:
+[TEXT_TO_ANALYZE_WILL_BE_INSERTED_HERE]
 `;
