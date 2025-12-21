@@ -5,18 +5,6 @@
   "framework": "nextjs",
   "outputDirectory": ".next",
   "regions": ["iad1"],
-  "env": {
-    "GEMINI_API_KEY": "@gemini_api_key",
-    "NEXT_PUBLIC_SUPABASE_URL": "@supabase_url",
-    "NEXT_PUBLIC_SUPABASE_ANON_KEY": "@supabase_anon_key"
-  },
-  "build": {
-    "env": {
-      "GEMINI_API_KEY": "@gemini_api_key",
-      "NEXT_PUBLIC_SUPABASE_URL": "@supabase_url",
-      "NEXT_PUBLIC_SUPABASE_ANON_KEY": "@supabase_anon_key"
-    }
-  },
   "headers": [
     {
       "source": "/(.*)",
