@@ -20,7 +20,9 @@ services:
         sync: false
       # AI Providers
       - key: AI_PROVIDER
-        value: github
+        value: google
+      - key: GOOGLE_GENAI_API_KEY
+        sync: false
       - key: GITHUB_TOKEN
         sync: false
       - key: GH_MODELS_ENDPOINT

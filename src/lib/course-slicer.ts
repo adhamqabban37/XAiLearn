@@ -22,13 +22,26 @@ export function sliceSession(
 ): StudySession | null {
   const { course, progress } = storedCourse;
 
+  console.log("[sliceSession] Input:", {
+    courseSessions: course.sessions.length,
+    totalLessons: course.sessions.reduce(
+      (acc, s) => acc + (s.lessons?.length || 0),
+      0
+    ),
+    progressKeys: Object.keys(progress).length,
+    durationMinutes,
+  });
+
   // Flatten lessons and filter out completed ones.
   const allLessons = course.sessions.flatMap((s) => s.lessons);
   const uncompletedLessons = allLessons.filter(
     (lesson) => !progress[lesson.id]
   );
 
+  console.log("[sliceSession] Uncompleted lessons:", uncompletedLessons.length);
+
   if (uncompletedLessons.length === 0) {
+    console.log("[sliceSession] No uncompleted lessons - course is complete");
     return null; // Course is complete
   }
 

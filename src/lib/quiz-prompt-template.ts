@@ -53,25 +53,55 @@ Here is the text to analyze:
 `;
 
 export const quizChunkPrompt = `
-You are an expert Quiz Generator.
-Your task is to generate multiple-choice questions from the provided text chunk.
+Act as a Data Engineer for a quiz platform. Analyze the uploaded document and transform it into a structured course.
 
-RULES:
-1. If the text contains explicit questions, extract them.
-2. If the text is narrative, GENERATE questions based on key facts and concepts.
-3. Create as many valid questions as possible.
-4. JSON ONLY. No markdown.
+TASK BREAKDOWN:
 
-OUTPUT FORMAT:
+1. ANALYSIS:
+   - Group related terms into 'Sessions' (e.g., "Legal Definitions", "Property Rights", "Contracts", etc.)
+   - For each term, create a multiple-choice question where the definition is the question and the term is the answer
+   - Ensure comprehensive coverage of all terms in the document
+
+2. DISTRACTOR GENERATION:
+   - For every question, create 3 wrong answers (distractors) using OTHER terms found in this SAME document
+   - This ensures high difficulty and tests true understanding
+   - Distractors must be plausible and from the same topic area when possible
+
+3. FORMATTING (CRITICAL):
+   - Output must be a SINGLE valid JSON object
+   - Must include a 'sessions' array for platform initialization
+   - Use professional English only (NO Arabic or other languages)
+   - Output ONLY JSON - NO markdown fences, NO explanatory text
+
+REQUIRED JSON STRUCTURE:
 {
   "questions": [
     {
-      "question": "Question text...",
+      "question": "What term means: The legal process whereby a property passes to the state when a person dies without a will and without heirs?",
       "type": "MCQ",
-      "options": ["Option A", "Option B", "Option C", "Option D"],
-      "answer": "Option A",
-      "explanation": "Explanation..."
+      "options": ["Escheat", "Probate", "Devise", "Intestate"],
+      "answer": "Escheat",
+      "explanation": "Escheat is the process by which property reverts to the state when there are no legal heirs.",
+      "session": "Legal Definitions"
+    },
+    {
+      "question": "What is the term for: A legal instrument that transfers property ownership from one person to another?",
+      "type": "MCQ",
+      "options": ["Deed", "Lease", "Mortgage", "Lien"],
+      "answer": "Deed",
+      "explanation": "A deed is a legal document that conveys property ownership.",
+      "session": "Property Documents"
     }
   ]
 }
+
+QUALITY REQUIREMENTS:
+- Each question must have exactly 4 options (1 correct + 3 distractors)
+- All distractors must be actual terms from the document
+- Questions must be clear and unambiguous
+- Only one indisputably correct answer per question
+- Group questions into logical sessions/categories
+
+TEXT TO ANALYZE:
+[TEXT_TO_ANALYZE_WILL_BE_INSERTED_HERE]
 `;
