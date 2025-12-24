@@ -186,6 +186,11 @@ export default function RootLayout({
           {/* Global polite live region for announcements (screen reader only) */}
           <div aria-live="polite" aria-atomic="true" className="sr-only" />
           <Toaster />
+          
+          {/* Footer */}
+          <footer className="mt-auto py-6 text-center text-sm text-muted-foreground border-t">
+            <p>© {new Date().getFullYear()} by QAB Global LLC</p>
+          </footer>
         </AuthProvider>
       </body>
     </html>
