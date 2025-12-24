@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import pdf from "pdf-parse";
+import { parsePdf } from "@/lib/pdf-parser";
 
 export async function POST(req: NextRequest) {
   try {
@@ -20,7 +20,7 @@ export async function POST(req: NextRequest) {
       try {
         const text = await file.text();
         const jsonData = JSON.parse(text);
-        
+
         // Convert JSON to readable text for AI processing
         rawText = JSON.stringify(jsonData, null, 2);
         console.log(`✅ [JSON] Parsed ${rawText.length} chars from JSON file`);
@@ -48,12 +48,13 @@ export async function POST(req: NextRequest) {
       // Extract Text from PDF
       let data;
       try {
-        data = await pdf(buffer);
+        data = await parsePdf(buffer);
       } catch (pdfError: any) {
         console.error("❌ [PDF] PDF parsing failed:", pdfError);
         return NextResponse.json(
           {
-            error: "Failed to parse PDF. The file may be corrupted or encrypted.",
+            error:
+              "Failed to parse PDF. The file may be corrupted or encrypted.",
           },
           { status: 422 }
         );
@@ -78,7 +79,10 @@ export async function POST(req: NextRequest) {
     // Unsupported file type
     else {
       return NextResponse.json(
-        { error: "Unsupported file type. Please upload PDF, JSON, or TXT files." },
+        {
+          error:
+            "Unsupported file type. Please upload PDF, JSON, or TXT files.",
+        },
         { status: 400 }
       );
     }
@@ -106,7 +110,9 @@ export async function POST(req: NextRequest) {
     console.error("❌ [Upload] Critical Error:", error);
     console.error("Error stack:", error.stack);
     return NextResponse.json(
-      { error: "Failed to process file: " + (error.message || "Unknown error") },
+      {
+        error: "Failed to process file: " + (error.message || "Unknown error"),
+      },
       { status: 500 }
     );
   }

@@ -13,8 +13,9 @@ const inter = Inter({
 
 export const metadata: Metadata = {
   title: {
-    default: "AI-Learn Platform - Transform PDFs into Interactive Courses with AI",
-    template: "%s | AI-Learn Platform"
+    default:
+      "AI-Learn Platform - Transform PDFs into Interactive Courses with AI",
+    template: "%s | AI-Learn Platform",
   },
   description:
     "Create AI-powered interactive courses from any PDF or document in seconds. Upload your materials and get structured lessons, quizzes, and video resources instantly. Free AI course generator for students, professionals, and lifelong learners.",
@@ -44,32 +45,36 @@ export const metadata: Metadata = {
     address: false,
     telephone: false,
   },
-  metadataBase: new URL(process.env.NEXT_PUBLIC_SITE_URL || 'https://your-domain.com'),
+  metadataBase: new URL(
+    process.env.NEXT_PUBLIC_SITE_URL || "https://your-domain.com"
+  ),
   alternates: {
-    canonical: '/',
+    canonical: "/",
   },
   openGraph: {
-    type: 'website',
-    locale: 'en_US',
-    url: '/',
-    title: 'AI-Learn Platform - Transform PDFs into Interactive Courses',
-    description: 'Create AI-powered interactive courses from any PDF or document in seconds. Get structured lessons, quizzes, and video resources instantly.',
-    siteName: 'AI-Learn Platform',
+    type: "website",
+    locale: "en_US",
+    url: "/",
+    title: "AI-Learn Platform - Transform PDFs into Interactive Courses",
+    description:
+      "Create AI-powered interactive courses from any PDF or document in seconds. Get structured lessons, quizzes, and video resources instantly.",
+    siteName: "AI-Learn Platform",
     images: [
       {
-        url: '/logo.svg',
+        url: "/logo.svg",
         width: 512,
         height: 512,
-        alt: 'AI-Learn Platform Logo',
+        alt: "AI-Learn Platform Logo",
       },
     ],
   },
   twitter: {
-    card: 'summary_large_image',
-    title: 'AI-Learn Platform - Transform PDFs into Interactive Courses',
-    description: 'Create AI-powered interactive courses from any PDF or document in seconds.',
-    images: ['/logo.svg'],
-    creator: '@AILearnPlatform', // Update with your actual Twitter handle
+    card: "summary_large_image",
+    title: "AI-Learn Platform - Transform PDFs into Interactive Courses",
+    description:
+      "Create AI-powered interactive courses from any PDF or document in seconds.",
+    images: ["/logo.svg"],
+    creator: "@AILearnPlatform", // Update with your actual Twitter handle
   },
   robots: {
     index: true,
@@ -77,18 +82,18 @@ export const metadata: Metadata = {
     googleBot: {
       index: true,
       follow: true,
-      'max-video-preview': -1,
-      'max-image-preview': 'large',
-      'max-snippet': -1,
+      "max-video-preview": -1,
+      "max-image-preview": "large",
+      "max-snippet": -1,
     },
   },
   icons: {
     // Rely on App Router dynamic icon routes at /icon and /apple-icon
-    icon: '/icon',
-    apple: '/apple-icon',
+    icon: "/icon",
+    apple: "/apple-icon",
   },
-  manifest: '/site.webmanifest',
-  category: 'education',
+  manifest: "/site.webmanifest",
+  category: "education",
 };
 
 export default function RootLayout({
@@ -100,7 +105,10 @@ export default function RootLayout({
     <html lang="en" className="dark" suppressHydrationWarning>
       <head>
         {/* Mobile-first viewport meta tag for responsive design */}
-        <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0" />
+        <meta
+          name="viewport"
+          content="width=device-width, initial-scale=1.0, maximum-scale=5.0"
+        />
         <link
           href="https://fonts.googleapis.com/css2?family=Source+Code+Pro:wght@400;600&display=swap"
           rel="stylesheet"
@@ -186,7 +194,7 @@ export default function RootLayout({
           {/* Global polite live region for announcements (screen reader only) */}
           <div aria-live="polite" aria-atomic="true" className="sr-only" />
           <Toaster />
-          
+
           {/* Footer */}
           <footer className="mt-auto py-6 text-center text-sm text-muted-foreground border-t">
             <p>© {new Date().getFullYear()} by QAB Global LLC</p>
