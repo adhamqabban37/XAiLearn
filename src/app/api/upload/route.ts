@@ -2,72 +2,112 @@ import { NextRequest, NextResponse } from "next/server";
 import pdf from "pdf-parse";
 
 export async function POST(req: NextRequest) {
-    try {
-        const formData = await req.formData();
-        const file = formData.get("file") as File;
+  try {
+    const formData = await req.formData();
+    const file = formData.get("file") as File;
 
-        if (!file) {
-            return NextResponse.json({ error: "No file provided" }, { status: 400 });
-        }
-
-        console.log(`📄 [PDF] Received file: ${file.name} (${file.size} bytes)`);
-
-        // Check file type
-        if (!file.name.toLowerCase().endsWith('.pdf')) {
-            return NextResponse.json(
-                { error: "Please upload a PDF file" },
-                { status: 400 }
-            );
-        }
-
-        let buffer;
-        try {
-            buffer = Buffer.from(await file.arrayBuffer());
-        } catch (bufferError: any) {
-            console.error("❌ [PDF] Failed to read file buffer:", bufferError);
-            return NextResponse.json(
-                { error: "Failed to read file. Please try again." },
-                { status: 500 }
-            );
-        }
-
-        // 1. Extract Text
-        let data;
-        try {
-            data = await pdf(buffer);
-        } catch (pdfError: any) {
-            console.error("❌ [PDF] PDF parsing failed:", pdfError);
-            return NextResponse.json(
-                { error: "Failed to parse PDF. The file may be corrupted or encrypted." },
-                { status: 422 }
-            );
-        }
-
-        const rawText = data.text || "";
-
-        // 2. Validate Extraction
-        if (rawText.trim().length < 50) {
-            console.error("❌ [PDF] Extraction failed: Text too short or empty.");
-            return NextResponse.json(
-                { error: "Could not read text from this PDF. It might be an image-only scan or empty." },
-                { status: 422 }
-            );
-        }
-
-        console.log(`✅ [PDF] Extracted ${rawText.length} chars. Passing to AI...`);
-
-        // 3. Return Clean Data
-        return NextResponse.json({
-            text: rawText,
-            videos: [], // Video extraction is separate, 0 videos is NOT an error
-        });
-
-    } catch (error: any) {
-        console.error("❌ [PDF] Critical Upload Error:", error);
-        console.error("Error stack:", error.stack);
-        return NextResponse.json(
-            { error: "Failed to process PDF: " + (error.message || "Unknown error") },
-            { status: 500 }
-        );
+    if (!file) {
+      return NextResponse.json({ error: "No file provided" }, { status: 400 });
     }
+
+    console.log(`📄 [Upload] Received file: ${file.name} (${file.size} bytes)`);
+
+    const fileName = file.name.toLowerCase();
+    let rawText = "";
+
+    // Handle JSON files
+    if (fileName.endsWith(".json")) {
+      try {
+        const text = await file.text();
+        const jsonData = JSON.parse(text);
+        
+        // Convert JSON to readable text for AI processing
+        rawText = JSON.stringify(jsonData, null, 2);
+        console.log(`✅ [JSON] Parsed ${rawText.length} chars from JSON file`);
+      } catch (jsonError: any) {
+        console.error("❌ [JSON] Failed to parse JSON:", jsonError);
+        return NextResponse.json(
+          { error: "Invalid JSON file. Please check the file format." },
+          { status: 422 }
+        );
+      }
+    }
+    // Handle PDF files
+    else if (fileName.endsWith(".pdf")) {
+      let buffer;
+      try {
+        buffer = Buffer.from(await file.arrayBuffer());
+      } catch (bufferError: any) {
+        console.error("❌ [PDF] Failed to read file buffer:", bufferError);
+        return NextResponse.json(
+          { error: "Failed to read file. Please try again." },
+          { status: 500 }
+        );
+      }
+
+      // Extract Text from PDF
+      let data;
+      try {
+        data = await pdf(buffer);
+      } catch (pdfError: any) {
+        console.error("❌ [PDF] PDF parsing failed:", pdfError);
+        return NextResponse.json(
+          {
+            error: "Failed to parse PDF. The file may be corrupted or encrypted.",
+          },
+          { status: 422 }
+        );
+      }
+
+      rawText = data.text || "";
+      console.log(`✅ [PDF] Extracted ${rawText.length} chars from PDF`);
+    }
+    // Handle TXT files
+    else if (fileName.endsWith(".txt")) {
+      try {
+        rawText = await file.text();
+        console.log(`✅ [TXT] Read ${rawText.length} chars from text file`);
+      } catch (txtError: any) {
+        console.error("❌ [TXT] Failed to read text file:", txtError);
+        return NextResponse.json(
+          { error: "Failed to read text file." },
+          { status: 500 }
+        );
+      }
+    }
+    // Unsupported file type
+    else {
+      return NextResponse.json(
+        { error: "Unsupported file type. Please upload PDF, JSON, or TXT files." },
+        { status: 400 }
+      );
+    }
+
+    // Validate extraction
+    if (rawText.trim().length < 50) {
+      console.error("❌ [Upload] Extraction failed: Text too short or empty.");
+      return NextResponse.json(
+        {
+          error:
+            "Could not extract enough text from this file. It might be empty or corrupted.",
+        },
+        { status: 422 }
+      );
+    }
+
+    console.log(`✅ [Upload] Successfully processed file. Passing to AI...`);
+
+    // Return clean data
+    return NextResponse.json({
+      text: rawText,
+      videos: [],
+    });
+  } catch (error: any) {
+    console.error("❌ [Upload] Critical Error:", error);
+    console.error("Error stack:", error.stack);
+    return NextResponse.json(
+      { error: "Failed to process file: " + (error.message || "Unknown error") },
+      { status: 500 }
+    );
+  }
 }
