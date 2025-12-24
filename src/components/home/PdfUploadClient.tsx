@@ -105,14 +105,17 @@ export default function PdfUploadClient({ onCourseGenerated }: Props) {
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Upload a PDF</CardTitle>
+        <CardTitle>Upload Study Material</CardTitle>
+        <p className="text-sm text-muted-foreground">
+          Upload PDF, JSON, or TXT files to generate quizzes
+        </p>
       </CardHeader>
       <CardContent>
         <form onSubmit={onSubmit} className="space-y-4">
           <Input
             type="file"
             name="file"
-            accept="application/pdf"
+            accept="application/pdf,.json,.txt,text/plain,application/json"
             required
             disabled={loading}
           />
